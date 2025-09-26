@@ -1,6 +1,7 @@
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Trophy, Users, Target, TrendingUp } from 'lucide-react'
+import { SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/nextjs'
+import Link from 'next/link'
 
 export default function HomePage() {
   return (
@@ -17,16 +18,25 @@ export default function HomePage() {
               track your performance, and prove you're the footy expert.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/sign-up">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-4 text-lg">
-                  Get Started Free
-                </Button>
-              </Link>
-              <Link href="/sign-in">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 font-semibold px-8 py-4 text-lg">
-                  Sign In
-                </Button>
-              </Link>
+              <SignedOut>
+                <SignUpButton mode="modal">
+                  <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-4 text-lg">
+                    Get Started Free
+                  </Button>
+                </SignUpButton>
+                <SignInButton mode="modal">
+                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 font-semibold px-8 py-4 text-lg">
+                    Sign In
+                  </Button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <Link href="/dashboard">
+                  <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-4 text-lg">
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              </SignedIn>
             </div>
           </div>
         </div>
@@ -99,11 +109,20 @@ export default function HomePage() {
             Join thousands of AFL fans already using AFL Tipper Pro for their 
             tipping competitions. It's free to get started!
           </p>
-          <Link href="/sign-up">
-            <Button size="lg" className="afl-button-primary px-8 py-4 text-lg">
-              Create Account Now
-            </Button>
-          </Link>
+          <SignedOut>
+            <SignUpButton mode="modal">
+              <Button size="lg" className="afl-button-primary px-8 py-4 text-lg">
+                Create Account Now
+              </Button>
+            </SignUpButton>
+          </SignedOut>
+          <SignedIn>
+            <Link href="/dashboard">
+              <Button size="lg" className="afl-button-primary px-8 py-4 text-lg">
+                Go to Dashboard
+              </Button>
+            </Link>
+          </SignedIn>
         </div>
       </section>
 
