@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  clerkId     String   @unique
+  username    String   @unique
+  email       String   @unique
+  firstName   String?
+  lastName    String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  competitions CompetitionUser[]
+  tips        Tip[]
+  
+  @@map("users")
+}
+
+model Competition {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  code        String   @unique
+  settings    Json     @default("{}")
+  season      Int      @default(2024)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String
+  
+  // Relationships
+  users       CompetitionUser[]
+  tips        Tip[]
+  
+  @@map("competitions")
+}
+
+model CompetitionUser {
+  id            String      @id @default(cuid())
+  userId        String
+  competitionId String
+  role          String      @default("member") // admin, member
+  joinedAt      DateTime    @default(now())
+  totalPoints   Int         @default(0)
+  
+  // Relationships
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, competitionId])
+  @@map("competition_users")
+}
+
+model Game {
+  id              String    @id @default(cuid())
+  squiggleId      String    @unique
+  round           Int
+  season          Int       @default(2024)
+  homeTeam        String
+  awayTeam        String
+  homeTeamId      Int
+  awayTeamId      Int
+  venue           String?
+  date            DateTime
+  homeScore       Int?
+  awayScore       Int?
+  winner          Int?      // team ID of winner
+  isComplete      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relationships  
+  tips            Tip[]
+  
+  @@map("games")
+}
+
+model Tip {
+  id               String   @id @default(cuid())
+  userId           String
+  gameId           String
+  competitionId    String
+  predictedWinner  Int      // team ID
+  margin           Int?
+  confidence       Int?     // 1-9 ranking
+  points           Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relationships
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game             Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  competition      Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, gameId, competitionId])
+  @@map("tips")
+}
+
+model Team {
+  id          Int      @id
+  name        String   @unique
+  nickname    String
+  abbreviation String  @unique
+  primaryColor String?
+  secondaryColor String?
+  logo        String?
+  
+  @@map("teams")
+}
