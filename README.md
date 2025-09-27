@@ -12,7 +12,7 @@ The ultimate AFL tipping competition application built with Next.js 14, TypeScri
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Prerequisites 
 
 - Node.js 18+ and npm
 - GitHub account
