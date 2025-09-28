@@ -245,16 +245,18 @@ export function TippingInterface({
 
   return (
     <div className="w-full bg-gray-50">
-      {/* FIXED STICKY HEADER WITH SAVE - Higher z-index */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-4xl mx-auto p-3 md:p-4">
-          <div className="flex items-center justify-between mb-3">
+      {/* FIXED STICKY HEADERS */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+        {/* Main Header with Save Button */}
+        <div className="border-b border-gray-200 p-3">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-500" />
-              <h1 className="text-lg md:text-xl font-semibold text-gray-900">
+              <h1 className="text-lg font-semibold text-gray-900">
                 Round {currentRound} {isRoundComplete ? 'Results' : 'Tipping'}
               </h1>
             </div>
+            
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <div className="text-lg font-bold text-gray-900">
@@ -267,7 +269,7 @@ export function TippingInterface({
                 <Button
                   onClick={saveTips}
                   disabled={saving || completedTips === 0}
-                  className="bg-blue-600 hover:bg-blue-700 ml-2"
+                  className="bg-blue-600 hover:bg-blue-700"
                   size="sm"
                 >
                   {saving ? (
@@ -283,8 +285,8 @@ export function TippingInterface({
             </div>
           </div>
 
-          {/* Status and Actions */}
-          <div className="flex items-center justify-between gap-3">
+          {/* Status Row */}
+          <div className="max-w-4xl mx-auto mt-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
                 🧪 Testing Mode
@@ -293,12 +295,6 @@ export function TippingInterface({
                 <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" />
                   Round Complete
-                </span>
-              )}
-              {completedTips === totalGames && totalGames > 0 && !isRoundComplete && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  All Tips Complete
                 </span>
               )}
             </div>
@@ -312,72 +308,72 @@ export function TippingInterface({
                 className="text-xs"
               >
                 <Star className="w-3 h-3 mr-1" />
-                Auto Confidence
+                Auto
               </Button>
             )}
           </div>
 
           {message && (
-            <div className={`mt-3 p-2 rounded text-xs ${
+            <div className={`max-w-4xl mx-auto mt-3 p-2 rounded text-xs ${
               message.includes('❌') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
             }`}>
               {message}
             </div>
           )}
         </div>
-      </div>
 
-      {/* FIXED STICKY ROUND NAVIGATION - Below header */}
-      <div className="fixed top-[120px] md:top-[130px] left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-4xl mx-auto p-3">
-          <div className="flex items-center justify-center gap-4 mb-3">
-            <Button
-              onClick={goToPrevRound}
-              disabled={currentRound <= 1 || loading}
-              variant="outline"
-              size="sm"
-              className="w-8 h-8 p-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            
-            <div className="text-center">
-              <div className="text-sm font-medium text-gray-700">Round</div>
-              <div className="text-xl md:text-2xl font-bold text-blue-600">{currentRound}</div>
-            </div>
-            
-            <Button
-              onClick={goToNextRound}
-              disabled={currentRound >= 25 || loading}
-              variant="outline"
-              size="sm"
-              className="w-8 h-8 p-0"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {/* Round Number Grid */}
-          <div className="flex flex-wrap justify-center gap-1">
-            {Array.from({ length: Math.min(10, 25) }, (_, i) => i + 1).map(round => (
+        {/* Round Navigation */}
+        <div className="border-b border-gray-200 p-3 bg-gray-50">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-center gap-4 mb-3">
               <Button
-                key={round}
-                onClick={() => goToRound(round)}
-                disabled={loading}
-                variant={round === currentRound ? "default" : "outline"}
+                onClick={goToPrevRound}
+                disabled={currentRound <= 1 || loading}
+                variant="outline"
                 size="sm"
-                className="w-8 h-8 p-0 text-xs"
+                className="w-8 h-8 p-0"
               >
-                {round}
+                <ChevronLeft className="w-4 h-4" />
               </Button>
-            ))}
+              
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-700">Round</div>
+                <div className="text-xl font-bold text-blue-600">{currentRound}</div>
+              </div>
+              
+              <Button
+                onClick={goToNextRound}
+                disabled={currentRound >= 25 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Round Number Grid */}
+            <div className="flex flex-wrap justify-center gap-1">
+              {Array.from({ length: Math.min(10, 25) }, (_, i) => i + 1).map(round => (
+                <Button
+                  key={round}
+                  onClick={() => goToRound(round)}
+                  disabled={loading}
+                  variant={round === currentRound ? "default" : "outline"}
+                  size="sm"
+                  className="w-8 h-8 p-0 text-xs"
+                >
+                  {round}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* MAIN CONTENT - With top padding to account for fixed headers */}
-      <div className="pt-[200px] md:pt-[210px]">
-        <div className="max-w-4xl mx-auto p-3 md:p-4 space-y-4">
+      {/* MAIN CONTENT - Account for both sticky headers */}
+      <div className="pt-[200px]">
+        <div className="max-w-4xl mx-auto p-4 space-y-4">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
@@ -440,7 +436,7 @@ function TeamLogo({ teamName, size = 32 }: { teamName: string, size?: number }) 
   )
 }
 
-// Game Card Component with Fixed Margin Ranking
+// Game Card Component with Side-by-Side Teams for Mobile
 interface GameCardProps {
   game: Game
   userTip?: UserTip
@@ -548,26 +544,26 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
         </div>
       </div>
 
-      {/* Teams */}
-      <div className="space-y-3 mb-4">
+      {/* SIDE-BY-SIDE TEAMS FOR MOBILE */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {/* Home Team */}
         <div className={`p-3 rounded-lg border-2 transition-all ${getBorderColor(game.homeTeamId)}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <TeamLogo teamName={game.homeTeam} size={28} />
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold text-gray-900 text-sm">
-                  {homeTeam?.nickname || game.homeTeam}
-                </div>
-                <div className="text-xs text-gray-500">
-                  Home • #{homeLadderPos}
-                </div>
-              </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <TeamLogo teamName={game.homeTeam} size={32} />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="font-semibold text-gray-900 text-sm mb-1">
+              {homeTeam?.nickname || game.homeTeam}
+            </div>
+            <div className="text-xs text-gray-500 mb-2">
+              Home • #{homeLadderPos}
+            </div>
+            
+            {/* Score and Form */}
+            <div className="space-y-2">
               {isRoundComplete && game.homeScore !== null && (
-                <div className="text-right">
-                  <div className="text-lg font-bold text-gray-900">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-gray-900">
                     {game.homeScore}
                   </div>
                   {actualWinner === game.homeTeamId && (
@@ -575,11 +571,13 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
                   )}
                 </div>
               )}
-              <div className="hidden sm:flex gap-1">
+              
+              {/* Form dots */}
+              <div className="flex justify-center gap-1">
                 {homeForm.slice(0, 3).map((match, i) => (
                   <div
                     key={i}
-                    className={`w-3 h-3 rounded-full ${
+                    className={`w-2 h-2 rounded-full ${
                       match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
                     }`}
                   />
@@ -591,22 +589,22 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
 
         {/* Away Team */}
         <div className={`p-3 rounded-lg border-2 transition-all ${getBorderColor(game.awayTeamId)}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <TeamLogo teamName={game.awayTeam} size={28} />
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold text-gray-900 text-sm">
-                  {awayTeam?.nickname || game.awayTeam}
-                </div>
-                <div className="text-xs text-gray-500">
-                  Away • #{awayLadderPos}
-                </div>
-              </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <TeamLogo teamName={game.awayTeam} size={32} />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="font-semibold text-gray-900 text-sm mb-1">
+              {awayTeam?.nickname || game.awayTeam}
+            </div>
+            <div className="text-xs text-gray-500 mb-2">
+              Away • #{awayLadderPos}
+            </div>
+            
+            {/* Score and Form */}
+            <div className="space-y-2">
               {isRoundComplete && game.awayScore !== null && (
-                <div className="text-right">
-                  <div className="text-lg font-bold text-gray-900">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-gray-900">
                     {game.awayScore}
                   </div>
                   {actualWinner === game.awayTeamId && (
@@ -614,11 +612,13 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
                   )}
                 </div>
               )}
-              <div className="hidden sm:flex gap-1">
+              
+              {/* Form dots */}
+              <div className="flex justify-center gap-1">
                 {awayForm.slice(0, 3).map((match, i) => (
                   <div
                     key={i}
-                    className={`w-3 h-3 rounded-full ${
+                    className={`w-2 h-2 rounded-full ${
                       match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
                     }`}
                   />
@@ -629,7 +629,7 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
         </div>
       </div>
 
-      {/* Results Summary for Completed Games - Fixed Margin Ranking */}
+      {/* Results Summary for Completed Games */}
       {isRoundComplete && userTip?.predictedWinner && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center justify-between text-sm">
