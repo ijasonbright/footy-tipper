@@ -12,9 +12,11 @@ import {
   Calendar,
   Users,
   TrendingUp,
-  Star
+  Star,
+  Shield,
+  Zap
 } from 'lucide-react'
-import { getTeamColors } from '@/lib/mock-game-service'
+import { getTeamColors, getTeamLogo, getTeamForm, getTeamFormRecord, getTeamById } from '@/lib/mock-game-service'
 
 interface Game {
   id: string
@@ -170,7 +172,10 @@ export function TippingInterface({
   const isGameLocked = (game: Game) => {
     const gameTime = new Date(game.date)
     const now = new Date()
-    return now > gameTime || game.isComplete
+    
+    // For testing: Only lock if game is already complete
+    // In live mode, this would check if game time has passed
+    return game.isComplete
   }
 
   // Get confidence rankings
@@ -370,7 +375,7 @@ export function TippingInterface({
   )
 }
 
-// Individual game tipping card component
+// Individual game tipping card component with enhanced visuals
 interface GameTippingCardProps {
   game: Game
   userTip?: UserTip
@@ -389,8 +394,16 @@ function GameTippingCard({
   allowConfidence,
   allowMargin 
 }: GameTippingCardProps) {
+  const homeTeam = getTeamById(game.homeTeamId)
+  const awayTeam = getTeamById(game.awayTeamId)
   const homeColors = getTeamColors(game.homeTeam)
   const awayColors = getTeamColors(game.awayTeam)
+  const homeLogo = getTeamLogo(game.homeTeam)
+  const awayLogo = getTeamLogo(game.awayTeam)
+  const homeForm = getTeamForm(game.homeTeamId)
+  const awayForm = getTeamForm(game.awayTeamId)
+  const homeFormRecord = getTeamFormRecord(game.homeTeamId)
+  const awayFormRecord = getTeamFormRecord(game.awayTeamId)
   
   const gameDate = new Date(game.date)
   const isComplete = game.isComplete
@@ -400,10 +413,10 @@ function GameTippingCard({
       isLocked ? 'opacity-75' : ''
     }`}>
       {/* Game Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <div className="text-sm font-medium text-gray-900">
-            Game {game.round} • {game.venue}
+            Round {game.round} • {game.venue}
           </div>
           {isComplete && (
             <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
@@ -429,25 +442,67 @@ function GameTippingCard({
       </div>
 
       {/* Team Selection */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-6 mb-6">
         {/* Home Team */}
         <button
           onClick={() => !isLocked && onUpdateTip({ predictedWinner: game.homeTeamId })}
           disabled={isLocked}
           className={`p-4 rounded-lg border-2 transition-all ${
             userTip?.predictedWinner === game.homeTeamId
-              ? 'border-blue-500 bg-blue-50'
+              ? 'border-blue-500 bg-blue-50 shadow-md'
               : 'border-gray-200 hover:border-gray-300'
           } ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}`}
         >
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: homeColors.primary }}
-            />
-            <div className="text-left">
-              <div className="font-semibold text-gray-900">{game.homeTeam}</div>
-              <div className="text-sm text-gray-500">Home</div>
+          <div className="space-y-3">
+            {/* Team Header */}
+            <div className="flex items-center gap-3">
+              {homeLogo ? (
+                <img 
+                  src={homeLogo} 
+                  alt={`${game.homeTeam} logo`}
+                  className="w-8 h-8 object-contain"
+                  onError={(e) => {
+                    // Fallback to color circle if logo fails to load
+                    e.currentTarget.style.display = 'none'
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                    if (fallback) fallback.style.display = 'block'
+                  }}
+                />
+              ) : null}
+              <div 
+                className="w-8 h-8 rounded-full"
+                style={{ 
+                  backgroundColor: homeColors.primary,
+                  display: homeLogo ? 'none' : 'block'
+                }}
+              />
+              <div className="text-left flex-1">
+                <div className="font-semibold text-gray-900">{homeTeam?.nickname || game.homeTeam}</div>
+                <div className="text-xs text-gray-500">Home</div>
+              </div>
+            </div>
+
+            {/* Team Form */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-600">Last 5 games</div>
+                <div className="text-xs font-medium text-gray-900">
+                  {homeFormRecord.wins}W-{homeFormRecord.losses}L
+                </div>
+              </div>
+              <div className="flex gap-1">
+                {homeForm.map((match, index) => (
+                  <div
+                    key={index}
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                      match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                    title={`${match.result} vs ${match.opponent} (${match.score})`}
+                  >
+                    {match.result}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </button>
@@ -458,18 +513,59 @@ function GameTippingCard({
           disabled={isLocked}
           className={`p-4 rounded-lg border-2 transition-all ${
             userTip?.predictedWinner === game.awayTeamId
-              ? 'border-blue-500 bg-blue-50'
+              ? 'border-blue-500 bg-blue-50 shadow-md'
               : 'border-gray-200 hover:border-gray-300'
           } ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}`}
         >
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: awayColors.primary }}
-            />
-            <div className="text-left">
-              <div className="font-semibold text-gray-900">{game.awayTeam}</div>
-              <div className="text-sm text-gray-500">Away</div>
+          <div className="space-y-3">
+            {/* Team Header */}
+            <div className="flex items-center gap-3">
+              {awayLogo ? (
+                <img 
+                  src={awayLogo} 
+                  alt={`${game.awayTeam} logo`}
+                  className="w-8 h-8 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                    if (fallback) fallback.style.display = 'block'
+                  }}
+                />
+              ) : null}
+              <div 
+                className="w-8 h-8 rounded-full"
+                style={{ 
+                  backgroundColor: awayColors.primary,
+                  display: awayLogo ? 'none' : 'block'
+                }}
+              />
+              <div className="text-left flex-1">
+                <div className="font-semibold text-gray-900">{awayTeam?.nickname || game.awayTeam}</div>
+                <div className="text-xs text-gray-500">Away</div>
+              </div>
+            </div>
+
+            {/* Team Form */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-600">Last 5 games</div>
+                <div className="text-xs font-medium text-gray-900">
+                  {awayFormRecord.wins}W-{awayFormRecord.losses}L
+                </div>
+              </div>
+              <div className="flex gap-1">
+                {awayForm.map((match, index) => (
+                  <div
+                    key={index}
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                      match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                    title={`${match.result} vs ${match.opponent} (${match.score})`}
+                  >
+                    {match.result}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </button>
@@ -491,7 +587,7 @@ function GameTippingCard({
                 onChange={(e) => onUpdateTip({ margin: parseInt(e.target.value) || undefined })}
                 disabled={isLocked}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g. 12"
+                placeholder="e.g. 12 points"
               />
             </div>
           )}
@@ -509,7 +605,7 @@ function GameTippingCard({
                 onChange={(e) => onUpdateTip({ confidence: parseInt(e.target.value) || undefined })}
                 disabled={isLocked}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="1-9"
+                placeholder="1 = least confident, 9 = most confident"
               />
             </div>
           )}
