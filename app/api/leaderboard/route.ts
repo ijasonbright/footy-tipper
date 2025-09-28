@@ -53,7 +53,15 @@ export async function GET(request: Request) {
     }
 
     // Get leaderboard data
-    const leaderboard = await generateLeaderboard(competitionId, round)
+    let leaderboard: LeaderboardEntry[]
+    
+    if (round > 0) {
+      // Get leaderboard with position changes
+      leaderboard = await getLeaderboardWithChanges(competitionId, round)
+    } else {
+      // Get current overall leaderboard
+      leaderboard = await generateLeaderboard(competitionId)
+    }
 
     return NextResponse.json({ leaderboard })
   } catch (error) {
@@ -135,7 +143,17 @@ async function generateLeaderboard(competitionId: string, upToRound?: number): P
       standing.totalTips += 1
 
       // Calculate points for this tip
-      const points = calculateTipPoints(tip, tip.game)
+      let points = 0
+      try {
+        points = calculateTipPoints(tip, tip.game)
+      } catch (error) {
+        console.error('Error calculating points for tip:', error)
+        // Fallback: 1 point for correct prediction
+        if (tip.game.isComplete && tip.game.winner && tip.predictedWinner === tip.game.winner) {
+          points = 1
+        }
+      }
+      
       standing.totalPoints += points
 
       // Count correct tips (any points = correct)
@@ -161,7 +179,7 @@ async function generateLeaderboard(competitionId: string, upToRound?: number): P
     const leaderboard: LeaderboardEntry[] = standings.map((standing, index) => ({
       ...standing,
       rank: index + 1,
-      change: undefined // TODO: Calculate position change from previous round
+      change: undefined // Will be calculated in getLeaderboardWithChanges if needed
     }))
 
     return leaderboard
@@ -171,13 +189,15 @@ async function generateLeaderboard(competitionId: string, upToRound?: number): P
   }
 }
 
-// Helper function to calculate position changes
-async function calculatePositionChanges(
-  currentLeaderboard: LeaderboardEntry[],
+// Helper function to calculate position changes (moved inside, not exported)
+async function getLeaderboardWithChanges(
   competitionId: string,
   currentRound: number
 ): Promise<LeaderboardEntry[]> {
   try {
+    // Get current round leaderboard
+    const currentLeaderboard = await generateLeaderboard(competitionId, currentRound)
+    
     if (currentRound <= 1) {
       // No previous round to compare
       return currentLeaderboard
@@ -201,12 +221,6 @@ async function calculatePositionChanges(
     }))
   } catch (error) {
     console.error('Error calculating position changes:', error)
-    return currentLeaderboard // Return without changes if error
+    return await generateLeaderboard(competitionId, currentRound) // Return without changes if error
   }
-}
-
-// Alternative endpoint for round-specific leaderboards with position changes
-export async function getLeaderboardWithChanges(competitionId: string, round: number) {
-  const currentLeaderboard = await generateLeaderboard(competitionId, round)
-  return await calculatePositionChanges(currentLeaderboard, competitionId, round)
 }
