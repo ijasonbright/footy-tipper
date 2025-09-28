@@ -4,9 +4,9 @@ import { prisma } from '@/lib/db'
 import { CompetitionContent } from './competition-content'
 
 interface CompetitionPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function CompetitionPage({ params }: CompetitionPageProps) {
@@ -15,6 +15,9 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
   if (!userId) {
     redirect('/sign-in')
   }
+
+  // Await params in Next.js 15+
+  const { id } = await params
 
   // Get user from database
   const user = await prisma.user.findUnique({
@@ -27,7 +30,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
 
   // Get competition with user relationship
   const competition = await prisma.competition.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       users: {
         include: {
