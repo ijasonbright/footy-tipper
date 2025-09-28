@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { AdminTestingPanel } from '@/components/admin-testing-panel'
 import { 
   Trophy, 
   Users, 
@@ -24,7 +25,7 @@ interface CompetitionContentProps {
   userTips: any[]
 }
 
-function CompetitionContent({ 
+export function CompetitionContent({ 
   competition, 
   user, 
   userMembership,
@@ -122,6 +123,11 @@ function CompetitionContent({
           </div>
         </div>
       </div>
+
+      {/* Admin Testing Panel - Show for competition admins */}
+      {isAdmin && (
+        <AdminTestingPanel competitionId={competition.id} />
+      )}
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -235,10 +241,10 @@ function CompetitionContent({
               {/* Recent Activity Placeholder */}
               <div className="bg-gray-50 p-8 rounded-lg text-center">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Tipping Not Yet Available</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Tipping Interface Coming Soon</h3>
                 <p className="text-gray-600">
-                  Game tipping functionality will be available once the AFL season starts and 
-                  game data is integrated.
+                  Use the Admin Panel above to manage game data and test tipping scenarios. 
+                  The actual tipping interface will be built next!
                 </p>
               </div>
             </div>
@@ -321,10 +327,10 @@ function CompetitionContent({
             <div className="space-y-6">
               <div className="bg-gray-50 p-8 rounded-lg text-center">
                 <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Tipping Coming Soon</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Tipping Interface Coming Next</h3>
                 <p className="text-gray-600">
-                  Game tipping interface will be available when AFL games are loaded. 
-                  You'll be able to make your predictions for each round here.
+                  Once game data is working properly, we'll build the tipping interface here. 
+                  Use the Admin Panel to set up game scenarios for testing.
                 </p>
               </div>
             </div>
@@ -337,6 +343,7 @@ function CompetitionContent({
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Competition Settings</h3>
                 <p className="text-gray-600">
                   Competition management and settings panel will be implemented here.
+                  Use the Admin Panel above for game data management.
                 </p>
               </div>
             </div>
@@ -347,5 +354,4 @@ function CompetitionContent({
   )
 }
 
-export { CompetitionContent }
 export default CompetitionContent
