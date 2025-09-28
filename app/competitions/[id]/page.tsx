@@ -2,14 +2,12 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-// Try default import first
 import CompetitionContent from './competition-content'
-// Alternative: import { CompetitionContent } from './competition-content'
 
 interface CompetitionPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function CompetitionPage({ params }: CompetitionPageProps) {
@@ -18,6 +16,9 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
   if (!userId) {
     redirect('/sign-in')
   }
+
+  // Await the params in Next.js 15
+  const { id } = await params
 
   // Get user
   const user = await prisma.user.findUnique({
@@ -30,7 +31,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
 
   // Get competition with detailed information
   const competition = await prisma.competition.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       users: {
         include: {
