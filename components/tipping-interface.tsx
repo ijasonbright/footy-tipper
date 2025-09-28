@@ -269,86 +269,7 @@ export function TippingInterface({
 
   return (
     <div className="w-full bg-gray-50 min-h-screen">
-      {/* MOBILE TOP BANNER */}
-      <div className="md:hidden bg-white border-b border-gray-200 shadow-sm">
-        <div className="p-3">
-          {/* AFL Tipper Pro Header */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-blue-500" />
-              <h1 className="text-lg font-bold text-gray-900">AFL Tipper Pro</h1>
-            </div>
-            
-            {/* Hamburger Menu (placeholder for future menu) */}
-            <button className="p-2">
-              <div className="w-5 h-5 flex flex-col justify-center space-y-1">
-                <div className="w-5 h-0.5 bg-gray-600"></div>
-                <div className="w-5 h-0.5 bg-gray-600"></div>
-                <div className="w-5 h-0.5 bg-gray-600"></div>
-              </div>
-            </button>
-          </div>
-
-          {/* Round Navigation Row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={goToPrevRound}
-                disabled={currentRound <= 1 || loading}
-                variant="outline"
-                size="sm"
-                className="w-8 h-8 p-0"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              
-              <div className="text-center">
-                <div className="text-xl font-bold text-blue-600">Round {currentRound}</div>
-              </div>
-              
-              <Button
-                onClick={goToNextRound}
-                disabled={currentRound >= 25 || loading}
-                variant="outline"
-                size="sm"
-                className="w-8 h-8 p-0"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Save Button */}
-            <div className="flex items-center gap-2">
-              <div className="text-right">
-                <div className="text-lg font-bold text-gray-900">
-                  {completedTips}/{totalGames > 0 ? totalGames : games.length}
-                </div>
-                <div className="text-xs text-gray-500">Tips</div>
-              </div>
-              
-              {!isRoundComplete && (
-                <Button
-                  onClick={saveTips}
-                  disabled={saving || completedTips === 0}
-                  className="bg-blue-600 hover:bg-blue-700"
-                  size="sm"
-                >
-                  {saving ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-1" />
-                      Save ({completedTips})
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* DESKTOP TOP BANNER */}
+      {/* DESKTOP TOP BANNER ONLY */}
       <div className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -403,6 +324,67 @@ export function TippingInterface({
             </div>
 
             {/* Right: Save Button Only */}
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-900">
+                  {completedTips}/{totalGames > 0 ? totalGames : games.length}
+                </div>
+                <div className="text-xs text-gray-500">Tips</div>
+              </div>
+              
+              {!isRoundComplete && (
+                <Button
+                  onClick={saveTips}
+                  disabled={saving || completedTips === 0}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  size="sm"
+                >
+                  {saving ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save ({completedTips})
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MOBILE NAVIGATION BAR ONLY */}
+      <div className="md:hidden bg-white border-b border-gray-200 shadow-sm">
+        <div className="p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={goToPrevRound}
+                disabled={currentRound <= 1 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              <div className="text-center">
+                <div className="text-xl font-bold text-blue-600">Round {currentRound}</div>
+              </div>
+              
+              <Button
+                onClick={goToNextRound}
+                disabled={currentRound >= 25 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Save Button */}
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <div className="text-lg font-bold text-gray-900">
