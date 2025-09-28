@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { AdminTestingPanel } from '@/components/admin-testing-panel'
+import { TippingInterface } from '@/components/tipping-interface'
 import { 
   Trophy, 
   Users, 
@@ -240,11 +241,10 @@ export function CompetitionContent({
 
               {/* Recent Activity Placeholder */}
               <div className="bg-gray-50 p-8 rounded-lg text-center">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Tipping Interface Coming Soon</h3>
+                <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to Start Tipping!</h3>
                 <p className="text-gray-600">
-                  Use the Admin Panel above to manage game data and test tipping scenarios. 
-                  The actual tipping interface will be built next!
+                  Go to the Tipping tab to make your predictions. Use the Admin Panel to manage game data for testing.
                 </p>
               </div>
             </div>
@@ -324,16 +324,15 @@ export function CompetitionContent({
           )}
 
           {activeTab === 'tipping' && (
-            <div className="space-y-6">
-              <div className="bg-gray-50 p-8 rounded-lg text-center">
-                <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Tipping Interface Coming Next</h3>
-                <p className="text-gray-600">
-                  Once game data is working properly, we'll build the tipping interface here. 
-                  Use the Admin Panel to set up game scenarios for testing.
-                </p>
-              </div>
-            </div>
+            <TippingInterface
+              competitionId={competition.id}
+              userId={user.id}
+              competitionSettings={{
+                allowConfidence: settings?.allowConfidence || false,
+                allowMargin: settings?.allowMargin || false,
+                scoringSystem: settings?.scoringSystem || 'standard'
+              }}
+            />
           )}
 
           {activeTab === 'settings' && isAdmin && (
