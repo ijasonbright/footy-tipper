@@ -4,9 +4,6 @@ import { prisma } from '@/lib/db'
 import { squiggleAPI } from '@/lib/squiggle'
 import { mockGameService, initializeMockData, type MockGame } from '@/lib/mock-game-service'
 
-// Environment flag to toggle between live and mock data
-const USE_MOCK_DATA = process.env.NODE_ENV === 'development' || process.env.USE_MOCK_GAMES === 'true'
-
 export async function GET(request: Request) {
   try {
     const { userId } = await auth()
@@ -18,12 +15,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const round = searchParams.get('round')
     const season = searchParams.get('season') || '2025'
-    const action = searchParams.get('action') // For testing actions like 'complete', 'reset', 'simulate'
+    const source = searchParams.get('source') || 'mock' // 'mock' or 'live'
+    const action = searchParams.get('action') // For testing actions
 
     let games: any[] = []
     let currentRound = 1
+    const useMockData = source === 'mock'
 
-    if (USE_MOCK_DATA) {
+    if (useMockData) {
       console.log('🧪 Using mock game data for testing')
       
       // Initialize mock data if not already done
@@ -31,36 +30,36 @@ export async function GET(request: Request) {
         initializeMockData()
       }
 
-      // Handle testing actions
+      // Handle testing actions (only for mock data)
       if (action) {
         const seasonNum = parseInt(season)
         const roundNum = round ? parseInt(round) : mockGameService.getCurrentRound(seasonNum)
         
         switch (action) {
           case 'complete':
-            // Complete some games in the specified round
             const completedGames = mockGameService.completeGames(seasonNum, roundNum, 3)
             return NextResponse.json({
               message: `Completed 3 games in Round ${roundNum}`,
               games: completedGames,
-              currentRound: mockGameService.getCurrentRound(seasonNum)
+              currentRound: mockGameService.getCurrentRound(seasonNum),
+              source: 'mock'
             })
           
           case 'reset':
-            // Reset all games to incomplete
             mockGameService.resetSeason(seasonNum)
             return NextResponse.json({
               message: `Reset all games for ${season} season`,
-              currentRound: 1
+              currentRound: 1,
+              source: 'mock'
             })
           
           case 'simulate':
-            // Simulate live scoring for the current round
             const simulatedGames = mockGameService.simulateLiveRound(seasonNum, roundNum)
             return NextResponse.json({
               message: `Simulated live scoring for Round ${roundNum}`,
               games: simulatedGames,
-              currentRound: mockGameService.getCurrentRound(seasonNum)
+              currentRound: mockGameService.getCurrentRound(seasonNum),
+              source: 'mock'
             })
         }
       }
@@ -74,7 +73,7 @@ export async function GET(request: Request) {
         games = mockGameService.getRoundGames(parseInt(season), currentRound)
       }
 
-      // Convert mock games to database format
+      // Convert mock games to API format
       games = games.map(game => ({
         id: game.id,
         squiggleId: game.squiggleId,
@@ -153,8 +152,9 @@ export async function GET(request: Request) {
       currentRound,
       season: parseInt(season),
       round: round ? parseInt(round) : currentRound,
-      source: USE_MOCK_DATA ? 'mock' : 'squiggle',
-      total: games.length
+      source: useMockData ? 'mock' : 'squiggle',
+      total: games.length,
+      mode: useMockData ? 'testing' : 'live'
     })
 
   } catch (error) {
@@ -201,7 +201,7 @@ async function syncGamesToDatabase(games: any[]) {
   }
 }
 
-// POST endpoint for admin actions (complete games, reset season, etc.)
+// POST endpoint for admin actions (only works with mock data)
 export async function POST(request: Request) {
   try {
     const { userId } = await auth()
@@ -211,31 +211,37 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { action, season = 2025, round, gameId } = body
+    const { action, season = 2025, round, gameId, source = 'mock', competitionId } = body
 
-    if (!USE_MOCK_DATA) {
+    // Only allow admin actions for mock data
+    if (source !== 'mock') {
       return NextResponse.json({ 
-        error: 'Admin actions only available in mock mode' 
+        error: 'Admin actions only available for mock data. Switch to testing mode first.' 
       }, { status: 400 })
     }
 
     const seasonNum = parseInt(season)
     const roundNum = round ? parseInt(round) : mockGameService.getCurrentRound(seasonNum)
 
+    // Initialize mock data if needed
+    if (!mockGameService.getSeasonGames(seasonNum).length) {
+      initializeMockData()
+    }
+
     switch (action) {
       case 'complete_game':
         if (!gameId) {
           return NextResponse.json({ error: 'Game ID required' }, { status: 400 })
         }
-        // Complete a specific game
+        
         const games = mockGameService.getSeasonGames(seasonNum)
         const gameIndex = games.findIndex(g => g.id === gameId)
         if (gameIndex === -1) {
           return NextResponse.json({ error: 'Game not found' }, { status: 404 })
         }
         
-        // Generate score and complete the game
-        const homeScore = Math.floor(Math.random() * 60) + 60
+        // Generate realistic score and complete the game
+        const homeScore = Math.floor(Math.random() * 60) + 60 // 60-120 points
         const awayScore = Math.floor(Math.random() * 60) + 60
         
         games[gameIndex] = {
@@ -248,7 +254,7 @@ export async function POST(request: Request) {
         }
         
         return NextResponse.json({
-          message: `Completed game: ${games[gameIndex].homeTeam} vs ${games[gameIndex].awayTeam}`,
+          message: `Completed game: ${games[gameIndex].homeTeam} ${homeScore} - ${awayScore} ${games[gameIndex].awayTeam}`,
           game: games[gameIndex]
         })
 
@@ -256,13 +262,15 @@ export async function POST(request: Request) {
         mockGameService.completeGames(seasonNum, roundNum, 9)
         return NextResponse.json({
           message: `Completed all games in Round ${roundNum}`,
-          games: mockGameService.getRoundGames(seasonNum, roundNum)
+          games: mockGameService.getRoundGames(seasonNum, roundNum),
+          currentRound: mockGameService.getCurrentRound(seasonNum)
         })
 
       case 'reset_season':
         mockGameService.resetSeason(seasonNum)
         return NextResponse.json({
-          message: `Reset all games for ${season} season`
+          message: `Reset all games for ${season} season`,
+          currentRound: 1
         })
 
       case 'advance_round':
@@ -270,9 +278,18 @@ export async function POST(request: Request) {
         mockGameService.completeGames(seasonNum, roundNum, 9)
         const nextRound = mockGameService.getCurrentRound(seasonNum)
         return NextResponse.json({
-          message: `Advanced to Round ${nextRound}`,
+          message: `Completed Round ${roundNum}. Advanced to Round ${nextRound}`,
           currentRound: nextRound,
           games: mockGameService.getRoundGames(seasonNum, nextRound)
+        })
+
+      case 'simulate_live':
+        // Simulate one game finishing during "live" play
+        const simulatedGames = mockGameService.simulateLiveRound(seasonNum, roundNum)
+        return NextResponse.json({
+          message: `Simulated live result in Round ${roundNum}`,
+          games: simulatedGames,
+          currentRound: mockGameService.getCurrentRound(seasonNum)
         })
 
       default:
