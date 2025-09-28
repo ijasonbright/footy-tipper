@@ -50,7 +50,7 @@ interface TippingInterfaceProps {
   }
 }
 
-// Mock ladder positions (you can replace with real data from Squiggle API)
+// Mock ladder positions
 const LADDER_POSITIONS: Record<number, number> = {
   1: 8,   // Adelaide - 8th
   2: 2,   // Brisbane Lions - 2nd
@@ -70,6 +70,104 @@ const LADDER_POSITIONS: Record<number, number> = {
   16: 14, // Sydney - 14th
   17: 16, // West Coast - 16th
   18: 17  // Western Bulldogs - 17th
+}
+
+// Updated team logo URLs - using multiple sources as fallbacks
+const getTeamLogos = (teamName: string) => {
+  const logoSources = {
+    'Adelaide': [
+      'https://resources.afl.com.au/afl/logos/adelaide-crows.svg',
+      'https://squiggle.com.au/static/logos/ade.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/adelaide.svg'
+    ],
+    'Brisbane Lions': [
+      'https://resources.afl.com.au/afl/logos/brisbane-lions.svg',
+      'https://squiggle.com.au/static/logos/brl.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/brisbane.svg'
+    ],
+    'Carlton': [
+      'https://resources.afl.com.au/afl/logos/carlton.svg',
+      'https://squiggle.com.au/static/logos/car.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/carlton.svg'
+    ],
+    'Collingwood': [
+      'https://resources.afl.com.au/afl/logos/collingwood.svg',
+      'https://squiggle.com.au/static/logos/col.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/collingwood.svg'
+    ],
+    'Essendon': [
+      'https://resources.afl.com.au/afl/logos/essendon.svg',
+      'https://squiggle.com.au/static/logos/ess.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/essendon.svg'
+    ],
+    'Fremantle': [
+      'https://resources.afl.com.au/afl/logos/fremantle.svg',
+      'https://squiggle.com.au/static/logos/fre.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/fremantle.svg'
+    ],
+    'Geelong': [
+      'https://resources.afl.com.au/afl/logos/geelong-cats.svg',
+      'https://squiggle.com.au/static/logos/gee.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/geelong.svg'
+    ],
+    'Gold Coast': [
+      'https://resources.afl.com.au/afl/logos/gold-coast-suns.svg',
+      'https://squiggle.com.au/static/logos/gcs.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/goldcoast.svg'
+    ],
+    'GWS': [
+      'https://resources.afl.com.au/afl/logos/greater-western-sydney-giants.svg',
+      'https://squiggle.com.au/static/logos/gws.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/gws.svg'
+    ],
+    'Hawthorn': [
+      'https://resources.afl.com.au/afl/logos/hawthorn.svg',
+      'https://squiggle.com.au/static/logos/haw.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/hawthorn.svg'
+    ],
+    'Melbourne': [
+      'https://resources.afl.com.au/afl/logos/melbourne.svg',
+      'https://squiggle.com.au/static/logos/mel.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/melbourne.svg'
+    ],
+    'North Melbourne': [
+      'https://resources.afl.com.au/afl/logos/north-melbourne.svg',
+      'https://squiggle.com.au/static/logos/nth.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/northmelbourne.svg'
+    ],
+    'Port Adelaide': [
+      'https://resources.afl.com.au/afl/logos/port-adelaide.svg',
+      'https://squiggle.com.au/static/logos/por.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/portadelaide.svg'
+    ],
+    'Richmond': [
+      'https://resources.afl.com.au/afl/logos/richmond.svg',
+      'https://squiggle.com.au/static/logos/ric.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/richmond.svg'
+    ],
+    'St Kilda': [
+      'https://resources.afl.com.au/afl/logos/st-kilda.svg',
+      'https://squiggle.com.au/static/logos/stk.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/stkilda.svg'
+    ],
+    'Sydney': [
+      'https://resources.afl.com.au/afl/logos/sydney-swans.svg',
+      'https://squiggle.com.au/static/logos/syd.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/sydney.svg'
+    ],
+    'West Coast': [
+      'https://resources.afl.com.au/afl/logos/west-coast-eagles.svg',
+      'https://squiggle.com.au/static/logos/wce.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/westcoast.svg'
+    ],
+    'Western Bulldogs': [
+      'https://resources.afl.com.au/afl/logos/western-bulldogs.svg',
+      'https://squiggle.com.au/static/logos/wbd.svg',
+      'https://www.afl.com.au/static-assets/images/clubs/westernbulldogs.svg'
+    ]
+  }
+  
+  return logoSources[teamName as keyof typeof logoSources] || []
 }
 
 export function TippingInterface({ 
@@ -190,13 +288,8 @@ export function TippingInterface({
     setSaving(false)
   }
 
-  // Check if game tipping is locked (past deadline)
+  // Check if game tipping is locked
   const isGameLocked = (game: Game) => {
-    const gameTime = new Date(game.date)
-    const now = new Date()
-    
-    // For testing: Only lock if game is already complete
-    // In live mode, this would check if game time has passed
     return game.isComplete
   }
 
@@ -209,7 +302,7 @@ export function TippingInterface({
     return tipsWithConfidence
   }
 
-  // Auto-assign confidence points (highest to lowest by order)
+  // Auto-assign confidence points
   const autoAssignConfidence = () => {
     const activeTips = Array.from(userTips.values()).filter(tip => tip.predictedWinner > 0)
     
@@ -227,7 +320,6 @@ export function TippingInterface({
 
   const completedTips = Array.from(userTips.values()).filter(tip => tip.predictedWinner > 0).length
   const totalGames = games.filter(g => !g.isComplete).length
-  const hasUnsavedChanges = userTips.size > 0
 
   return (
     <div className="space-y-6">
@@ -397,7 +489,53 @@ export function TippingInterface({
   )
 }
 
-// Individual game tipping card component with enhanced visuals
+// Enhanced Team Logo Component with multiple fallbacks
+function TeamLogo({ teamName, size = 40, className = "" }: { teamName: string, size?: number, className?: string }) {
+  const [currentLogoIndex, setCurrentLogoIndex] = useState(0)
+  const [hasError, setHasError] = useState(false)
+  const logoUrls = getTeamLogos(teamName)
+  const teamColors = getTeamColors(teamName)
+
+  const handleError = () => {
+    if (currentLogoIndex < logoUrls.length - 1) {
+      setCurrentLogoIndex(prev => prev + 1)
+    } else {
+      setHasError(true)
+    }
+  }
+
+  if (hasError || logoUrls.length === 0) {
+    // Fallback to colored circle with team initial
+    const teamInitial = teamName.charAt(0).toUpperCase()
+    return (
+      <div 
+        className={`rounded-full flex items-center justify-center font-bold text-white ${className}`}
+        style={{ 
+          width: size, 
+          height: size, 
+          backgroundColor: teamColors.primary,
+          fontSize: size * 0.4
+        }}
+      >
+        {teamInitial}
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={logoUrls[currentLogoIndex]}
+      alt={`${teamName} logo`}
+      width={size}
+      height={size}
+      className={`object-contain ${className}`}
+      onError={handleError}
+      loading="lazy"
+    />
+  )
+}
+
+// Individual game tipping card component
 interface GameTippingCardProps {
   game: Game
   userTip?: UserTip
@@ -451,34 +589,6 @@ function GameTippingCard({
     }
   }
 
-  // Get team logo URL from Squiggle API
-  const getTeamLogo = (teamName: string) => {
-    const logoMap: Record<string, string> = {
-      'Adelaide': 'https://squiggle.com.au/static/logos/ade.svg',
-      'Brisbane Lions': 'https://squiggle.com.au/static/logos/brl.svg',
-      'Carlton': 'https://squiggle.com.au/static/logos/car.svg',
-      'Collingwood': 'https://squiggle.com.au/static/logos/col.svg',
-      'Essendon': 'https://squiggle.com.au/static/logos/ess.svg',
-      'Fremantle': 'https://squiggle.com.au/static/logos/fre.svg',
-      'Geelong': 'https://squiggle.com.au/static/logos/gee.svg',
-      'Gold Coast': 'https://squiggle.com.au/static/logos/gcs.svg',
-      'GWS': 'https://squiggle.com.au/static/logos/gws.svg',
-      'Hawthorn': 'https://squiggle.com.au/static/logos/haw.svg',
-      'Melbourne': 'https://squiggle.com.au/static/logos/mel.svg',
-      'North Melbourne': 'https://squiggle.com.au/static/logos/nth.svg',
-      'Port Adelaide': 'https://squiggle.com.au/static/logos/por.svg',
-      'Richmond': 'https://squiggle.com.au/static/logos/ric.svg',
-      'St Kilda': 'https://squiggle.com.au/static/logos/stk.svg',
-      'Sydney': 'https://squiggle.com.au/static/logos/syd.svg',
-      'West Coast': 'https://squiggle.com.au/static/logos/wce.svg',
-      'Western Bulldogs': 'https://squiggle.com.au/static/logos/wbd.svg',
-    }
-    return logoMap[teamName] || ''
-  }
-
-  const homeLogo = getTeamLogo(game.homeTeam)
-  const awayLogo = getTeamLogo(game.awayTeam)
-
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 ${
       isLocked ? 'opacity-75' : ''
@@ -523,27 +633,7 @@ function GameTippingCard({
           <div className="space-y-3">
             {/* Team Header */}
             <div className="flex items-center gap-3">
-              {homeLogo ? (
-                <img 
-                  src={homeLogo} 
-                  alt={`${game.homeTeam} logo`}
-                  className="w-10 h-10 object-contain"
-                  onError={(e) => {
-                    // Fallback to color circle if logo fails
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
-                    const fallback = target.nextElementSibling as HTMLElement
-                    if (fallback) fallback.style.display = 'block'
-                  }}
-                />
-              ) : null}
-              <div 
-                className="w-10 h-10 rounded-full flex-shrink-0"
-                style={{ 
-                  backgroundColor: homeColors.primary,
-                  display: homeLogo ? 'none' : 'block'
-                }}
-              />
+              <TeamLogo teamName={game.homeTeam} size={40} />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-900 truncate">
                   {homeTeam?.nickname || game.homeTeam}
@@ -590,26 +680,7 @@ function GameTippingCard({
           <div className="space-y-3">
             {/* Team Header */}
             <div className="flex items-center gap-3">
-              {awayLogo ? (
-                <img 
-                  src={awayLogo} 
-                  alt={`${game.awayTeam} logo`}
-                  className="w-10 h-10 object-contain"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
-                    const fallback = target.nextElementSibling as HTMLElement
-                    if (fallback) fallback.style.display = 'block'
-                  }}
-                />
-              ) : null}
-              <div 
-                className="w-10 h-10 rounded-full flex-shrink-0"
-                style={{ 
-                  backgroundColor: awayColors.primary,
-                  display: awayLogo ? 'none' : 'block'
-                }}
-              />
+              <TeamLogo teamName={game.awayTeam} size={40} />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-900 truncate">
                   {awayTeam?.nickname || game.awayTeam}
