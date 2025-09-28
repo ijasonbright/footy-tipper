@@ -20,6 +20,7 @@ import {
   Info
 } from 'lucide-react'
 import { getTeamColors, getTeamForm, getTeamFormRecord, getTeamById } from '@/lib/mock-game-service'
+import { useViewMode } from '@/contexts/view-mode-context'
 
 interface Game {
   id: string
@@ -55,9 +56,6 @@ interface TippingInterfaceProps {
     allowMargin?: boolean
     scoringSystem?: string
   }
-  isAdmin?: boolean
-  onViewChange?: (view: 'user' | 'admin') => void
-  currentView?: 'user' | 'admin'
 }
 
 // Team form interfaces to match your mock service
@@ -109,11 +107,9 @@ const getTeamLogo = (teamName: string): string => {
 export function TippingInterface({ 
   competitionId, 
   userId, 
-  competitionSettings = {},
-  isAdmin = false,
-  onViewChange,
-  currentView = 'user'
+  competitionSettings = {}
 }: TippingInterfaceProps) {
+  const { viewMode, isAdmin } = useViewMode()
   const [games, setGames] = useState<Game[]>([])
   const [userTips, setUserTips] = useState<Map<string, UserTip>>(new Map())
   const [loading, setLoading] = useState(false)
@@ -277,15 +273,10 @@ export function TippingInterface({
       <div className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* Left: Title and Competition Info */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Target className="w-6 h-6 text-blue-500" />
-                <h1 className="text-xl font-bold text-gray-900">AFL Tipper Pro</h1>
-              </div>
-              <div className="text-sm text-gray-500">
-                Season 2025 • 2 members • Code: 72TLRT
-              </div>
+            {/* Left: Just the logo */}
+            <div className="flex items-center gap-2">
+              <Target className="w-6 h-6 text-blue-500" />
+              <h1 className="text-xl font-bold text-gray-900">AFL Tipper Pro</h1>
             </div>
 
             {/* Center: Round Navigation */}
@@ -338,19 +329,21 @@ export function TippingInterface({
               {isAdmin && (
                 <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
                   <Button
-                    onClick={() => onViewChange?.('user')}
-                    variant={currentView === 'user' ? 'default' : 'ghost'}
+                    onClick={() => {}} // View mode is now handled in UserButton menu
+                    variant={viewMode === 'user' ? 'default' : 'ghost'}
                     size="sm"
                     className="text-xs h-8"
+                    disabled
                   >
                     <Eye className="w-3 h-3 mr-1" />
                     User View
                   </Button>
                   <Button
-                    onClick={() => onViewChange?.('admin')}
-                    variant={currentView === 'admin' ? 'default' : 'ghost'}
+                    onClick={() => {}} // View mode is now handled in UserButton menu
+                    variant={viewMode === 'admin' ? 'default' : 'ghost'}
                     size="sm"
                     className="text-xs h-8"
+                    disabled
                   >
                     <UserCog className="w-3 h-3 mr-1" />
                     Admin View
@@ -470,86 +463,72 @@ export function TippingInterface({
       </div>
 
       {/* MAIN CONTAINER */}
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto p-4">
         {/* TAB NAVIGATION - Desktop Only */}
-        <div className="hidden md:block bg-white border-b border-gray-200">
-          <div className="px-4">
-            <nav className="flex space-x-8" aria-label="Tabs">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'overview'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  Overview
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab('leaderboard')}
-                className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'leaderboard'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4" />
-                  Leaderboard
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab('tipping')}
-                className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'tipping'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4" />
-                  Tipping
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'settings'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  Settings
-                </div>
-              </button>
-            </nav>
-          </div>
+        <div className="hidden md:block mb-4">
+          <nav className="flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'overview'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Overview
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('leaderboard')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'leaderboard'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4" />
+                Leaderboard
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('tipping')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'tipping'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                Tipping
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'settings'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Settings
+              </div>
+            </button>
+          </nav>
         </div>
 
         {/* TAB CONTENT */}
-        <div className="p-4">
+        <div className="space-y-4">
           {/* Mobile shows tipping directly, Desktop shows based on activeTab */}
           {(activeTab === 'tipping' || true) && (
             <div className="space-y-4">
               {/* Status Messages - Desktop Only */}
               <div className="hidden md:flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
-                    🧪 Testing Mode
-                  </span>
-                  {isRoundComplete && (
-                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      Round Complete
-                    </span>
-                  )}
-                </div>
-
                 {!isRoundComplete && allowConfidence && (
                   <Button
                     onClick={autoAssignConfidence}
