@@ -58,20 +58,6 @@ interface TippingInterfaceProps {
   }
 }
 
-// Team form interfaces to match your mock service
-interface TeamFormMatch {
-  opponent: string
-  result: 'W' | 'L'
-  score: string
-  margin?: number // Made optional since it might not always be present
-}
-
-interface TeamFormRecord {
-  wins: number
-  losses: number
-  total?: number // Made optional and will calculate it
-}
-
 // Mock ladder positions
 const LADDER_POSITIONS: Record<number, number> = {
   1: 8, 2: 2, 3: 4, 4: 6, 5: 11, 6: 9, 7: 3, 8: 15, 9: 7, 10: 12,
@@ -269,17 +255,15 @@ export function TippingInterface({
 
   return (
     <div className="w-full bg-gray-50 min-h-screen">
-      {/* DESKTOP TOP BANNER ONLY */}
+      {/* CLEAN DESKTOP HEADER */}
       <div className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* Left: Just the logo */}
             <div className="flex items-center gap-2">
               <Target className="w-6 h-6 text-blue-500" />
               <h1 className="text-xl font-bold text-gray-900">AFL Tipper Pro</h1>
             </div>
 
-            {/* Center: Round Navigation */}
             <div className="flex items-center gap-4">
               <Button
                 onClick={goToPrevRound}
@@ -306,7 +290,6 @@ export function TippingInterface({
                 <ChevronRight className="w-4 h-4" />
               </Button>
 
-              {/* Round Number Buttons */}
               <div className="flex gap-1 ml-4">
                 {Array.from({ length: Math.min(10, 25) }, (_, i) => i + 1).map(round => (
                   <Button
@@ -323,7 +306,6 @@ export function TippingInterface({
               </div>
             </div>
 
-            {/* Right: Save Button Only */}
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <div className="text-lg font-bold text-gray-900">
@@ -354,7 +336,7 @@ export function TippingInterface({
         </div>
       </div>
 
-      {/* MOBILE NAVIGATION BAR ONLY */}
+      {/* CLEAN MOBILE NAVIGATION */}
       <div className="md:hidden bg-white border-b border-gray-200 shadow-sm">
         <div className="p-3">
           <div className="flex items-center justify-between">
@@ -384,7 +366,6 @@ export function TippingInterface({
               </Button>
             </div>
 
-            {/* Save Button */}
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <div className="text-lg font-bold text-gray-900">
@@ -415,9 +396,8 @@ export function TippingInterface({
         </div>
       </div>
 
-      {/* MAIN CONTAINER */}
+      {/* CONSISTENT WIDTH CONTAINER */}
       <div className="max-w-4xl mx-auto p-4">
-        {/* GAMES CONTENT - Direct display, no tabs */}
         <div className="space-y-4">
           {message && (
             <div className={`p-2 rounded text-xs ${
@@ -427,7 +407,6 @@ export function TippingInterface({
             </div>
           )}
 
-          {/* Games */}
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
@@ -454,13 +433,13 @@ export function TippingInterface({
         </div>
       </div>
 
-      {/* ADMIN TOGGLE - Bottom right, only if admin */}
+      {/* BOTTOM RIGHT ADMIN TOGGLE */}
       {isAdmin && (
         <div className="fixed bottom-6 right-6 z-50">
-          <div className="flex items-center gap-2 p-3 bg-white rounded-lg shadow-lg border border-gray-200">
-            <span className="text-xs text-gray-600 mr-2">View:</span>
+          <div className="flex items-center gap-2 p-3 bg-white rounded-lg shadow-xl border border-gray-200">
+            <span className="text-xs text-gray-600 mr-2">Admin View:</span>
             <Button
-              onClick={() => {}} // Controlled by UserButton menu
+              onClick={() => {}}
               variant={viewMode === 'user' ? 'default' : 'ghost'}
               size="sm"
               className="text-xs"
@@ -470,7 +449,7 @@ export function TippingInterface({
               User
             </Button>
             <Button
-              onClick={() => {}} // Controlled by UserButton menu
+              onClick={() => {}}
               variant={viewMode === 'admin' ? 'default' : 'ghost'}
               size="sm"
               className="text-xs"
@@ -483,7 +462,6 @@ export function TippingInterface({
         </div>
       )}
 
-      {/* Team Detail Modal */}
       {showTeamModal.show && showTeamModal.teamId && (
         <TeamDetailModal 
           teamId={showTeamModal.teamId}
