@@ -1,13 +1,12 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import CompetitionContent from './competition-content'
+import { CompetitionContent } from './competition-content'
 
 interface CompetitionPageProps {
-  params: Promise<{
+  params: {
     id: string
-  }>
+  }
 }
 
 export default async function CompetitionPage({ params }: CompetitionPageProps) {
@@ -17,10 +16,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
     redirect('/sign-in')
   }
 
-  // Await the params in Next.js 15
-  const { id } = await params
-
-  // Get user
+  // Get user from database
   const user = await prisma.user.findUnique({
     where: { clerkId: userId }
   })
@@ -29,9 +25,9 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
     redirect('/sign-in')
   }
 
-  // Get competition with detailed information
+  // Get competition with user relationship
   const competition = await prisma.competition.findUnique({
-    where: { id },
+    where: { id: params.id },
     include: {
       users: {
         include: {
@@ -39,55 +35,45 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
             select: {
               id: true,
               username: true,
-              imageUrl: true,
-              firstName: true,
-              lastName: true
+              imageUrl: true
             }
           }
-        },
-        orderBy: [
-          { totalPoints: 'desc' },
-          { joinedAt: 'asc' }
-        ]
+        }
       }
     }
   })
 
   if (!competition) {
-    notFound()
+    redirect('/dashboard')
   }
 
-  // Check if user is a member of this competition
-  const userMembership = competition.users.find(cu => cu.userId === user.id)
+  // Check if user is member of this competition
+  const userMembership = competition.users.find(u => u.userId === user.id)
   
   if (!userMembership) {
     redirect('/dashboard')
   }
 
-  // Get current round games (you'll need to implement this based on your game fetching logic)
-  // For now, we'll pass an empty array
-  const currentRoundGames: any[] = []
-
-  // Get user's tips for current round
-  const userTips = await prisma.tip.findMany({
-    where: {
-      userId: user.id,
-      competitionId: competition.id,
-      // Add game filter for current round when you implement games
-    }
-  })
+  // Get user role and competition settings
+  const userRole = userMembership.role as 'admin' | 'member'
+  const competitionSettings = competition.settings as any
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <CompetitionContent
-          competition={competition}
-          user={user}
-          userMembership={userMembership}
-          currentRoundGames={currentRoundGames}
-          userTips={userTips}
-        />
-      </div>
-    </div>
+    <CompetitionContent
+      competitionId={competition.id}
+      userId={user.id}
+      userRole={userRole}
+      competitionSettings={{
+        allowConfidence: competitionSettings?.allowConfidence || false,
+        allowMargin: competitionSettings?.allowMargin || false,
+        scoringSystem: competitionSettings?.scoringSystem || 'standard'
+      }}
+      competition={{
+        name: competition.name,
+        code: competition.code,
+        season: competition.season,
+        memberCount: competition.users.length
+      }}
+    />
   )
 }
