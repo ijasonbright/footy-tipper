@@ -7,7 +7,6 @@ import {
   Save, 
   CheckCircle,
   Calendar,
-  TrendingUp,
   Star,
   ChevronLeft,
   ChevronRight
@@ -36,7 +35,7 @@ interface UserTip {
   confidence?: number
 }
 
-interface TippingInterfaceProps {
+interface UserTippingInterfaceProps {
   competitionId: string
   userId: string
   competitionSettings: {
@@ -78,11 +77,11 @@ const getTeamLogo = (teamName: string): string => {
   return logoMap[teamName] || ''
 }
 
-export function TippingInterface({ 
+export function UserTippingInterface({ 
   competitionId, 
   userId, 
   competitionSettings = {} 
-}: TippingInterfaceProps) {
+}: UserTippingInterfaceProps) {
   const [games, setGames] = useState<Game[]>([])
   const [userTips, setUserTips] = useState<Map<string, UserTip>>(new Map())
   const [loading, setLoading] = useState(false)
@@ -182,7 +181,6 @@ export function TippingInterface({
       })
       
       if (response.ok) {
-        const result = await response.json()
         setMessage(`✅ Saved ${tipsToSave.length} tips!`)
         
         // Force reload tips to ensure they persist
@@ -227,143 +225,135 @@ export function TippingInterface({
   const totalGames = games.filter(g => !g.isComplete).length
 
   return (
-    // FULL SCREEN MOBILE CONTAINER
-    <div className="fixed inset-0 bg-white overflow-hidden">
-      <div className="flex flex-col h-full max-w-sm mx-auto">
-        
-        {/* MOBILE HEADER - FIXED */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 p-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Target className="w-4 h-4 text-blue-500 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <h1 className="text-base font-semibold text-gray-900 truncate">
-                  Round {currentRound} Tips
-                </h1>
-              </div>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <div className="text-lg font-bold text-gray-900">
-                {completedTips}/{totalGames}
-              </div>
-            </div>
+    <div className="w-full max-w-md mx-auto bg-white min-h-screen">
+      {/* USER HEADER - Clean & Simple */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-blue-500" />
+            <h1 className="text-lg font-semibold text-gray-900">
+              Round {currentRound} Tipping
+            </h1>
           </div>
+          <div className="text-right">
+            <div className="text-lg font-bold text-gray-900">
+              {completedTips}/{totalGames}
+            </div>
+            <div className="text-xs text-gray-500">Tips</div>
+          </div>
+        </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
-              <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
-                🧪 Test
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
+              🧪 Testing Mode
+            </span>
+            {completedTips === totalGames && totalGames > 0 && (
+              <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Complete
               </span>
-              {completedTips === totalGames && totalGames > 0 && (
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  Done
-                </span>
-              )}
-            </div>
+            )}
+          </div>
 
-            <div className="flex items-center gap-1">
-              {allowConfidence && (
-                <Button
-                  onClick={autoAssignConfidence}
-                  disabled={completedTips === 0}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-6 px-2"
-                >
-                  <Star className="w-3 h-3" />
-                </Button>
-              )}
-              
+          <div className="flex items-center gap-2">
+            {allowConfidence && (
               <Button
-                onClick={saveTips}
-                disabled={saving || completedTips === 0}
-                className="bg-blue-600 hover:bg-blue-700 text-xs h-6 px-2"
+                onClick={autoAssignConfidence}
+                disabled={completedTips === 0}
+                variant="outline"
+                size="sm"
+                className="text-xs h-7 px-2"
               >
-                {saving ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                ) : (
-                  <>
-                    <Save className="w-3 h-3 mr-1" />
-                    Save ({completedTips})
-                  </>
-                )}
+                <Star className="w-3 h-3" />
               </Button>
-            </div>
-          </div>
-
-          {message && (
-            <div className={`mt-2 p-2 rounded text-xs ${
-              message.includes('❌') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
-            }`}>
-              {message}
-            </div>
-          )}
-        </div>
-
-        {/* ROUND NAVIGATION - FIXED */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 p-2">
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              onClick={goToPrevRound}
-              disabled={currentRound <= 1 || loading}
-              variant="outline"
-              size="sm"
-              className="w-8 h-8 p-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            
-            <div className="text-center">
-              <div className="text-sm font-medium text-gray-700">Round</div>
-              <div className="text-xl font-bold text-blue-600">{currentRound}</div>
-            </div>
+            )}
             
             <Button
-              onClick={goToNextRound}
-              disabled={currentRound >= 5 || loading}
-              variant="outline"
-              size="sm"
-              className="w-8 h-8 p-0"
+              onClick={saveTips}
+              disabled={saving || completedTips === 0}
+              className="bg-blue-600 hover:bg-blue-700 text-xs h-7 px-3"
             >
-              <ChevronRight className="w-4 h-4" />
+              {saving ? (
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+              ) : (
+                <>
+                  <Save className="w-3 h-3 mr-1" />
+                  Save ({completedTips})
+                </>
+              )}
             </Button>
           </div>
         </div>
 
-        {/* SCROLLABLE GAMES LIST */}
-        <div className="flex-1 overflow-y-auto p-3">
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
-              <p className="text-gray-600 text-sm">Loading...</p>
-            </div>
-          ) : games.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="w-6 h-6 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No games for Round {currentRound}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {games.map((game) => (
-                <GameCard
-                  key={game.id}
-                  game={game}
-                  userTip={userTips.get(game.id)}
-                  onUpdateTip={(updates) => updateTip(game.id, updates)}
-                  allowConfidence={allowConfidence}
-                  allowMargin={allowMargin}
-                />
-              ))}
-            </div>
-          )}
+        {message && (
+          <div className={`mt-2 p-2 rounded text-xs ${
+            message.includes('❌') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
+          }`}>
+            {message}
+          </div>
+        )}
+      </div>
+
+      {/* ROUND NAVIGATION - Simple Arrows */}
+      <div className="sticky top-[104px] z-10 bg-white border-b border-gray-200 p-3">
+        <div className="flex items-center justify-between">
+          <Button
+            onClick={goToPrevRound}
+            disabled={currentRound <= 1 || loading}
+            variant="outline"
+            size="sm"
+            className="w-10 h-8 p-0"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          
+          <div className="text-center">
+            <div className="text-sm font-medium text-gray-700">Round</div>
+            <div className="text-xl font-bold text-blue-600">{currentRound}</div>
+          </div>
+          
+          <Button
+            onClick={goToNextRound}
+            disabled={currentRound >= 5 || loading}
+            variant="outline"
+            size="sm"
+            className="w-10 h-8 p-0"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
+      </div>
+
+      {/* GAMES LIST */}
+      <div className="p-4 space-y-4">
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
+            <p className="text-gray-600 text-sm">Loading games...</p>
+          </div>
+        ) : games.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Calendar className="w-6 h-6 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No games available for Round {currentRound}</p>
+          </div>
+        ) : (
+          games.map((game) => (
+            <UserGameCard
+              key={game.id}
+              game={game}
+              userTip={userTips.get(game.id)}
+              onUpdateTip={(updates) => updateTip(game.id, updates)}
+              allowConfidence={allowConfidence}
+            />
+          ))
+        )}
       </div>
     </div>
   )
 }
 
-// Team Logo Component
+// Clean Team Logo Component
 function TeamLogo({ teamName, size = 24 }: { teamName: string, size?: number }) {
   const [hasError, setHasError] = useState(false)
   const logoUrl = getTeamLogo(teamName)
@@ -372,7 +362,7 @@ function TeamLogo({ teamName, size = 24 }: { teamName: string, size?: number }) 
   if (hasError || !logoUrl) {
     return (
       <div 
-        className="rounded-full flex items-center justify-center font-bold text-white flex-shrink-0"
+        className="rounded-full flex items-center justify-center font-bold text-white"
         style={{ 
           width: size, 
           height: size, 
@@ -391,22 +381,21 @@ function TeamLogo({ teamName, size = 24 }: { teamName: string, size?: number }) 
       alt={teamName}
       width={size}
       height={size}
-      className="object-contain flex-shrink-0"
+      className="object-contain"
       onError={() => setHasError(true)}
     />
   )
 }
 
-// Game Card Component
-interface GameCardProps {
+// Clean User Game Card
+interface UserGameCardProps {
   game: Game
   userTip?: UserTip
   onUpdateTip: (updates: Partial<UserTip>) => void
   allowConfidence: boolean
-  allowMargin: boolean
 }
 
-function GameCard({ game, userTip, onUpdateTip, allowConfidence }: GameCardProps) {
+function UserGameCard({ game, userTip, onUpdateTip, allowConfidence }: UserGameCardProps) {
   const homeTeam = getTeamById(game.homeTeamId)
   const awayTeam = getTeamById(game.awayTeamId)
   const homeColors = getTeamColors(game.homeTeam)
@@ -425,7 +414,7 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence }: GameCardProps
     return userTip.predictedWinner === game.homeTeamId ? -margin : margin
   })
 
-  // Update slider when userTip changes (for persistence)
+  // Update slider when userTip changes
   useEffect(() => {
     if (!userTip?.predictedWinner) {
       setSliderValue(0)
@@ -448,33 +437,34 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence }: GameCardProps
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-3">
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
       {/* Game Header */}
-      <div className="flex items-center justify-between mb-3 text-xs">
-        <span className="font-medium text-gray-900 truncate flex-1">
+      <div className="flex items-center justify-between mb-3 text-sm">
+        <span className="font-medium text-gray-900 truncate">
           {game.venue}
         </span>
-        <span className="text-gray-500 flex-shrink-0">
+        <span className="text-gray-500">
           {gameDate.toLocaleDateString('en-AU', { 
             weekday: 'short', 
-            day: 'numeric' 
+            day: 'numeric',
+            month: 'short'
           })}
         </span>
       </div>
 
-      {/* Teams */}
-      <div className="space-y-2 mb-3">
+      {/* Teams - Mobile Stack */}
+      <div className="space-y-3 mb-4">
         {/* Home Team */}
-        <div className={`p-2 rounded border ${
+        <div className={`p-3 rounded-lg border-2 transition-all ${
           userTip?.predictedWinner === game.homeTeamId
             ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-200'
+            : 'border-gray-200 hover:border-gray-300'
         }`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <TeamLogo teamName={game.homeTeam} size={24} />
-              <div className="min-w-0 flex-1">
-                <div className="font-medium text-sm text-gray-900 truncate">
+            <div className="flex items-center gap-3">
+              <TeamLogo teamName={game.homeTeam} size={28} />
+              <div>
+                <div className="font-semibold text-gray-900">
                   {homeTeam?.nickname || game.homeTeam}
                 </div>
                 <div className="text-xs text-gray-500">
@@ -482,30 +472,32 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence }: GameCardProps
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {homeForm.slice(0, 2).map((match, i) => (
-                <div
-                  key={i}
-                  className={`w-3 h-3 rounded-full ${
-                    match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
-                  }`}
-                />
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-gray-600">
+                {homeForm.slice(0, 3).map((match, i) => (
+                  <span
+                    key={i}
+                    className={`inline-block w-4 h-4 rounded-full mr-1 ${
+                      match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Away Team */}
-        <div className={`p-2 rounded border ${
+        <div className={`p-3 rounded-lg border-2 transition-all ${
           userTip?.predictedWinner === game.awayTeamId
             ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-200'
+            : 'border-gray-200 hover:border-gray-300'
         }`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <TeamLogo teamName={game.awayTeam} size={24} />
-              <div className="min-w-0 flex-1">
-                <div className="font-medium text-sm text-gray-900 truncate">
+            <div className="flex items-center gap-3">
+              <TeamLogo teamName={game.awayTeam} size={28} />
+              <div>
+                <div className="font-semibold text-gray-900">
                   {awayTeam?.nickname || game.awayTeam}
                 </div>
                 <div className="text-xs text-gray-500">
@@ -513,26 +505,28 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence }: GameCardProps
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {awayForm.slice(0, 2).map((match, i) => (
-                <div
-                  key={i}
-                  className={`w-3 h-3 rounded-full ${
-                    match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
-                  }`}
-                />
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-gray-600">
+                {awayForm.slice(0, 3).map((match, i) => (
+                  <span
+                    key={i}
+                    className={`inline-block w-4 h-4 rounded-full mr-1 ${
+                      match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Slider */}
-      <div className="p-2 bg-gray-50 rounded">
-        <div className="flex items-center justify-between mb-2 text-xs">
+      <div className="p-3 bg-gray-50 rounded-lg mb-3">
+        <div className="flex items-center justify-between mb-2 text-sm">
           <span className="font-medium text-gray-700">Winner & Margin</span>
           <span className="text-gray-600">
-            {sliderValue === 0 ? 'No tip' : 
+            {sliderValue === 0 ? 'No tip selected' : 
              `${sliderValue < 0 ? homeTeam?.nickname : awayTeam?.nickname} by ${Math.abs(sliderValue)}`}
           </span>
         </div>
@@ -543,7 +537,7 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence }: GameCardProps
           max="100"
           value={sliderValue}
           onChange={(e) => handleSliderChange(parseInt(e.target.value))}
-          className="w-full h-6 rounded-lg appearance-none cursor-pointer mobile-slider"
+          className="w-full h-8 rounded-lg appearance-none cursor-pointer user-slider"
           style={{
             background: `linear-gradient(to right, 
               ${homeColors.primary} 0%, 
@@ -558,8 +552,8 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence }: GameCardProps
 
       {/* Confidence */}
       {allowConfidence && userTip?.predictedWinner && (
-        <div className="pt-2 border-t border-gray-200 mt-2">
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+        <div className="pt-3 border-t border-gray-200">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Confidence (1-9)
           </label>
           <input
@@ -568,33 +562,33 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence }: GameCardProps
             max="9"
             value={userTip.confidence || ''}
             onChange={(e) => onUpdateTip({ confidence: parseInt(e.target.value) || undefined })}
-            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="1-9"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="1 = least confident, 9 = most confident"
           />
         </div>
       )}
 
-      {/* Mobile Slider Styles */}
+      {/* Slider Styles */}
       <style jsx>{`
-        .mobile-slider::-webkit-slider-thumb {
+        .user-slider::-webkit-slider-thumb {
           appearance: none;
-          height: 20px;
-          width: 20px;
+          height: 24px;
+          width: 24px;
           background: #3b82f6;
           border-radius: 50%;
           cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          border: 2px solid white;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          border: 3px solid white;
         }
         
-        .mobile-slider::-moz-range-thumb {
-          height: 20px;
-          width: 20px;
+        .user-slider::-moz-range-thumb {
+          height: 24px;
+          width: 24px;
           background: #3b82f6;
           border-radius: 50%;
           cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          border: 3px solid white;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
       `}</style>
     </div>

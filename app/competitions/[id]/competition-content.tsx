@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { AdminTestingPanel } from '@/components/admin-testing-panel'
-import { TippingInterface } from '@/components/tipping-interface'
+import { UserTippingInterface } from '@/components/tipping-interface'
 import { 
   Trophy, 
   Users, 
@@ -324,7 +324,7 @@ export function CompetitionContent({
           )}
 
           {activeTab === 'tipping' && (
-            <TippingInterface
+            <UserTippingInterface
               competitionId={competition.id}
               userId={user.id}
               competitionSettings={{
