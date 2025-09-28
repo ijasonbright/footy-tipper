@@ -11,7 +11,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Trophy,
-  Award
+  Award,
+  BarChart3,
+  Settings,
+  Users,
+  Eye,
+  UserCog,
+  Info
 } from 'lucide-react'
 import { getTeamColors, getTeamForm, getTeamFormRecord, getTeamById } from '@/lib/mock-game-service'
 
@@ -49,6 +55,23 @@ interface TippingInterfaceProps {
     allowMargin?: boolean
     scoringSystem?: string
   }
+  isAdmin?: boolean
+  onViewChange?: (view: 'user' | 'admin') => void
+  currentView?: 'user' | 'admin'
+}
+
+// Team form interfaces to match your mock service
+interface TeamFormMatch {
+  opponent: string
+  result: 'W' | 'L'
+  score: string
+  margin?: number // Made optional since it might not always be present
+}
+
+interface TeamFormRecord {
+  wins: number
+  losses: number
+  total?: number // Made optional and will calculate it
 }
 
 // Mock ladder positions
@@ -86,7 +109,10 @@ const getTeamLogo = (teamName: string): string => {
 export function TippingInterface({ 
   competitionId, 
   userId, 
-  competitionSettings = {} 
+  competitionSettings = {},
+  isAdmin = false,
+  onViewChange,
+  currentView = 'user'
 }: TippingInterfaceProps) {
   const [games, setGames] = useState<Game[]>([])
   const [userTips, setUserTips] = useState<Map<string, UserTip>>(new Map())
@@ -94,6 +120,8 @@ export function TippingInterface({
   const [saving, setSaving] = useState(false)
   const [currentRound, setCurrentRound] = useState(1)
   const [message, setMessage] = useState('')
+  const [activeTab, setActiveTab] = useState<'overview' | 'leaderboard' | 'tipping' | 'settings'>('tipping')
+  const [showTeamModal, setShowTeamModal] = useState<{show: boolean, teamId?: number}>({show: false})
 
   const { allowConfidence = false, allowMargin = false } = competitionSettings
 
@@ -244,12 +272,128 @@ export function TippingInterface({
   const isRoundComplete = games.length > 0 && games.every(g => g.isComplete)
 
   return (
-    <div className="w-full bg-gray-50">
-      {/* FIXED STICKY HEADERS */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
-        {/* Main Header with Save Button */}
-        <div className="border-b border-gray-200 p-3">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
+    <div className="w-full bg-gray-50 min-h-screen">
+      {/* DESKTOP TOP BANNER */}
+      <div className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left: Title and Competition Info */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Target className="w-6 h-6 text-blue-500" />
+                <h1 className="text-xl font-bold text-gray-900">AFL Tipper Pro</h1>
+              </div>
+              <div className="text-sm text-gray-500">
+                Season 2025 • 2 members • Code: 72TLRT
+              </div>
+            </div>
+
+            {/* Center: Round Navigation */}
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={goToPrevRound}
+                disabled={currentRound <= 1 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-700">Round</div>
+                <div className="text-xl font-bold text-blue-600">{currentRound}</div>
+              </div>
+              
+              <Button
+                onClick={goToNextRound}
+                disabled={currentRound >= 25 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+
+              {/* Round Number Buttons */}
+              <div className="flex gap-1 ml-4">
+                {Array.from({ length: Math.min(10, 25) }, (_, i) => i + 1).map(round => (
+                  <Button
+                    key={round}
+                    onClick={() => goToRound(round)}
+                    disabled={loading}
+                    variant={round === currentRound ? "default" : "outline"}
+                    size="sm"
+                    className="w-8 h-8 p-0 text-xs"
+                  >
+                    {round}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Admin Toggle and Save */}
+            <div className="flex items-center gap-3">
+              {/* Admin View Toggle */}
+              {isAdmin && (
+                <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+                  <Button
+                    onClick={() => onViewChange?.('user')}
+                    variant={currentView === 'user' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="text-xs h-8"
+                  >
+                    <Eye className="w-3 h-3 mr-1" />
+                    User View
+                  </Button>
+                  <Button
+                    onClick={() => onViewChange?.('admin')}
+                    variant={currentView === 'admin' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="text-xs h-8"
+                  >
+                    <UserCog className="w-3 h-3 mr-1" />
+                    Admin View
+                  </Button>
+                </div>
+              )}
+
+              {/* Save Button */}
+              <div className="flex items-center gap-2">
+                <div className="text-right">
+                  <div className="text-lg font-bold text-gray-900">
+                    {completedTips}/{totalGames > 0 ? totalGames : games.length}
+                  </div>
+                  <div className="text-xs text-gray-500">Tips</div>
+                </div>
+                
+                {!isRoundComplete && (
+                  <Button
+                    onClick={saveTips}
+                    disabled={saving || completedTips === 0}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    size="sm"
+                  >
+                    {saving ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-1" />
+                        Save ({completedTips})
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MOBILE TOP BANNER */}
+      <div className="md:hidden bg-white border-b border-gray-200 shadow-sm">
+        <div className="p-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-500" />
               <h1 className="text-lg font-semibold text-gray-900">
@@ -285,46 +429,8 @@ export function TippingInterface({
             </div>
           </div>
 
-          {/* Status Row */}
-          <div className="max-w-4xl mx-auto mt-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
-                🧪 Testing Mode
-              </span>
-              {isRoundComplete && (
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  Round Complete
-                </span>
-              )}
-            </div>
-
-            {!isRoundComplete && allowConfidence && (
-              <Button
-                onClick={autoAssignConfidence}
-                disabled={completedTips === 0}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-              >
-                <Star className="w-3 h-3 mr-1" />
-                Auto
-              </Button>
-            )}
-          </div>
-
-          {message && (
-            <div className={`max-w-4xl mx-auto mt-3 p-2 rounded text-xs ${
-              message.includes('❌') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
-            }`}>
-              {message}
-            </div>
-          )}
-        </div>
-
-        {/* Round Navigation */}
-        <div className="border-b border-gray-200 p-3 bg-gray-50">
-          <div className="max-w-4xl mx-auto">
+          {/* Mobile Round Navigation */}
+          <div className="mt-3">
             <div className="flex items-center justify-center gap-4 mb-3">
               <Button
                 onClick={goToPrevRound}
@@ -371,33 +477,240 @@ export function TippingInterface({
         </div>
       </div>
 
-      {/* MAIN CONTENT - Account for both sticky headers */}
-      <div className="pt-[200px]">
-        <div className="max-w-4xl mx-auto p-4 space-y-4">
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
-              <p className="text-gray-600 text-sm">Loading games...</p>
+      {/* MAIN CONTAINER */}
+      <div className="max-w-7xl mx-auto">
+        {/* TAB NAVIGATION */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="px-4">
+            <nav className="flex space-x-8" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'overview'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Overview
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('leaderboard')}
+                className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'leaderboard'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  Leaderboard
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('tipping')}
+                className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'tipping'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  Tipping
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'settings'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </div>
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* TAB CONTENT */}
+        <div className="p-4">
+          {activeTab === 'tipping' && (
+            <div className="space-y-4">
+              {/* Status Messages */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
+                    🧪 Testing Mode
+                  </span>
+                  {isRoundComplete && (
+                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Round Complete
+                    </span>
+                  )}
+                </div>
+
+                {!isRoundComplete && allowConfidence && (
+                  <Button
+                    onClick={autoAssignConfidence}
+                    disabled={completedTips === 0}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                  >
+                    <Star className="w-3 h-3 mr-1" />
+                    Auto
+                  </Button>
+                )}
+              </div>
+
+              {message && (
+                <div className={`p-2 rounded text-xs ${
+                  message.includes('❌') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
+                }`}>
+                  {message}
+                </div>
+              )}
+
+              {/* Games */}
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                  <p className="text-gray-600 text-sm">Loading games...</p>
+                </div>
+              ) : games.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No games available for Round {currentRound}</p>
+                </div>
+              ) : (
+                games.map((game) => (
+                  <GameCard
+                    key={game.id}
+                    game={game}
+                    userTip={userTips.get(game.id)}
+                    onUpdateTip={(updates) => updateTip(game.id, updates)}
+                    allowConfidence={allowConfidence}
+                    isRoundComplete={isRoundComplete}
+                    onShowTeamDetail={(teamId) => setShowTeamModal({show: true, teamId})}
+                  />
+                ))
+              )}
             </div>
-          ) : games.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="w-6 h-6 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No games available for Round {currentRound}</p>
+          )}
+
+          {activeTab === 'leaderboard' && (
+            <div className="max-w-4xl">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Leaderboard - Round {currentRound}</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">J</div>
+                      <div>
+                        <div className="font-medium text-gray-900">jasonbright</div>
+                        <div className="text-sm text-gray-500">0/0 correct</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-gray-900">0</div>
+                      <div className="text-sm text-gray-500">points</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">J</div>
+                      <div>
+                        <div className="font-medium text-gray-900">jasontipper</div>
+                        <div className="text-sm text-gray-500">0/0 correct</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-gray-900">0</div>
+                      <div className="text-sm text-gray-500">points</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 text-center text-sm text-gray-500">
+                  <p>Showing 2 participants</p>
+                  <p>Rankings update after each round</p>
+                </div>
+              </div>
             </div>
-          ) : (
-            games.map((game) => (
-              <GameCard
-                key={game.id}
-                game={game}
-                userTip={userTips.get(game.id)}
-                onUpdateTip={(updates) => updateTip(game.id, updates)}
-                allowConfidence={allowConfidence}
-                isRoundComplete={isRoundComplete}
-              />
-            ))
+          )}
+
+          {activeTab === 'overview' && (
+            <div className="max-w-4xl">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Competition Overview</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">2</div>
+                    <div className="text-sm text-gray-600">Total Members</div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{currentRound}</div>
+                    <div className="text-sm text-gray-600">Current Round</div>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">2025</div>
+                    <div className="text-sm text-gray-600">Season</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="max-w-4xl">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Competition Settings</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Competition Code</label>
+                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">72TLRT</div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Scoring System</label>
+                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">Standard</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center">
+                      <input type="checkbox" checked={allowConfidence} disabled className="mr-2" />
+                      <span className="text-sm text-gray-700">Allow Confidence Rankings</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input type="checkbox" checked={allowMargin} disabled className="mr-2" />
+                      <span className="text-sm text-gray-700">Allow Margin Predictions</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Team Detail Modal */}
+      {showTeamModal.show && showTeamModal.teamId && (
+        <TeamDetailModal 
+          teamId={showTeamModal.teamId}
+          onClose={() => setShowTeamModal({show: false})}
+        />
+      )}
     </div>
   )
 }
@@ -436,16 +749,17 @@ function TeamLogo({ teamName, size = 32 }: { teamName: string, size?: number }) 
   )
 }
 
-// Game Card Component with Side-by-Side Teams for Mobile
+// Enhanced Game Card Component
 interface GameCardProps {
   game: Game
   userTip?: UserTip
   onUpdateTip: (updates: Partial<UserTip>) => void
   allowConfidence: boolean
   isRoundComplete: boolean
+  onShowTeamDetail: (teamId: number) => void
 }
 
-function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete }: GameCardProps) {
+function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete, onShowTeamDetail }: GameCardProps) {
   const homeTeam = getTeamById(game.homeTeamId)
   const awayTeam = getTeamById(game.awayTeamId)
   const homeColors = getTeamColors(game.homeTeam)
@@ -547,7 +861,8 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
       {/* SIDE-BY-SIDE TEAMS FOR MOBILE */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         {/* Home Team */}
-        <div className={`p-3 rounded-lg border-2 transition-all ${getBorderColor(game.homeTeamId)}`}>
+        <div className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${getBorderColor(game.homeTeamId)}`}
+             onClick={() => onShowTeamDetail(game.homeTeamId)}>
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
               <TeamLogo teamName={game.homeTeam} size={32} />
@@ -572,7 +887,7 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
                 </div>
               )}
               
-              {/* Form dots */}
+              {/* Enhanced Form with Opponents */}
               <div className="flex justify-center gap-1">
                 {homeForm.slice(0, 3).map((match, i) => (
                   <div
@@ -580,6 +895,7 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
                     className={`w-2 h-2 rounded-full ${
                       match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
                     }`}
+                    title={`${match.result} vs ${match.opponent}`}
                   />
                 ))}
               </div>
@@ -588,7 +904,8 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
         </div>
 
         {/* Away Team */}
-        <div className={`p-3 rounded-lg border-2 transition-all ${getBorderColor(game.awayTeamId)}`}>
+        <div className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${getBorderColor(game.awayTeamId)}`}
+             onClick={() => onShowTeamDetail(game.awayTeamId)}>
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
               <TeamLogo teamName={game.awayTeam} size={32} />
@@ -613,7 +930,7 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
                 </div>
               )}
               
-              {/* Form dots */}
+              {/* Enhanced Form with Opponents */}
               <div className="flex justify-center gap-1">
                 {awayForm.slice(0, 3).map((match, i) => (
                   <div
@@ -621,6 +938,7 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
                     className={`w-2 h-2 rounded-full ${
                       match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
                     }`}
+                    title={`${match.result} vs ${match.opponent}`}
                   />
                 ))}
               </div>
@@ -764,6 +1082,88 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
       `}</style>
+    </div>
+  )
+}
+
+// Team Detail Modal Component
+function TeamDetailModal({ teamId, onClose }: { teamId: number, onClose: () => void }) {
+  const team = getTeamById(teamId)
+  const teamForm = getTeamForm(teamId)
+  const formRecord = getTeamFormRecord(teamId)
+  
+  if (!team) return null
+
+  // Calculate total games safely
+  const totalGames = formRecord.wins + formRecord.losses
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <TeamLogo teamName={team.name} size={40} />
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">{team.nickname}</h3>
+              <p className="text-sm text-gray-500">{team.name}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Recent Form</h4>
+            <div className="text-sm text-gray-600 mb-2">
+              Last 5 games: {formRecord.wins}W - {formRecord.losses}L
+            </div>
+            <div className="space-y-2">
+              {teamForm.map((match, index) => (
+                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
+                    }`} />
+                    <span className="text-sm">vs {match.opponent}</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {match.score}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Current Season Stats</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="text-gray-600">Ladder Position</div>
+                <div className="font-medium">#{LADDER_POSITIONS[teamId] || 'N/A'}</div>
+              </div>
+              <div>
+                <div className="text-gray-600">Win Rate</div>
+                <div className="font-medium">
+                  {totalGames > 0 ? Math.round((formRecord.wins / totalGames) * 100) : 0}%
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Button
+          onClick={onClose}
+          className="w-full mt-6"
+          variant="outline"
+        >
+          Close
+        </Button>
+      </div>
     </div>
   )
 }
