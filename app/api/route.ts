@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/db'
 import { generateCompetitionCode } from '@/lib/utils'
 
@@ -19,13 +19,22 @@ export async function POST(request: Request) {
     }
 
     // Get or create user
+    const clerkUser = await currentUser()
     let user = await prisma.user.findUnique({
       where: { clerkId: userId }
     })
 
     if (!user) {
-      // This shouldn't happen if the dashboard page works, but just in case
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      user = await prisma.user.create({
+        data: {
+          clerkId: userId,
+          email: clerkUser?.primaryEmailAddress?.emailAddress || '',
+          username: clerkUser?.username || clerkUser?.firstName || 'User',
+          firstName: clerkUser?.firstName,
+          lastName: clerkUser?.lastName,
+          imageUrl: clerkUser?.imageUrl,
+        }
+      })
     }
 
     // Generate unique competition code
