@@ -9,7 +9,9 @@ import {
   Calendar,
   Star,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Trophy,
+  Award
 } from 'lucide-react'
 import { getTeamColors, getTeamForm, getTeamFormRecord, getTeamById } from '@/lib/mock-game-service'
 
@@ -25,6 +27,7 @@ interface Game {
   homeScore: number | null
   awayScore: number | null
   isComplete: boolean
+  winner?: number
 }
 
 interface UserTip {
@@ -33,6 +36,9 @@ interface UserTip {
   predictedWinner: number
   margin?: number
   confidence?: number
+  isCorrect?: boolean
+  marginRank?: number
+  points?: number
 }
 
 interface TippingInterfaceProps {
@@ -104,7 +110,8 @@ export function TippingInterface({
       
       if (response.ok) {
         setGames(data.games)
-        setCurrentRound(data.currentRound)
+        const newRound = round || data.currentRound
+        setCurrentRound(newRound)
         setMessage('')
         
         // Load existing tips for these games
@@ -118,7 +125,7 @@ export function TippingInterface({
     setLoading(false)
   }
 
-  // Load user's existing tips
+  // Load user's existing tips with results
   const loadUserTips = async (gameIds: string[]) => {
     try {
       const response = await fetch('/api/tips', {
@@ -141,7 +148,10 @@ export function TippingInterface({
             gameId: tip.gameId,
             predictedWinner: tip.predictedWinner,
             margin: tip.margin,
-            confidence: tip.confidence
+            confidence: tip.confidence,
+            isCorrect: tip.isCorrect,
+            marginRank: tip.marginRank,
+            points: tip.points
           })
         })
         
@@ -183,7 +193,7 @@ export function TippingInterface({
       if (response.ok) {
         setMessage(`✅ Saved ${tipsToSave.length} tips!`)
         
-        // Force reload tips to ensure they persist
+        // Reload tips to get updated results
         setTimeout(() => {
           loadUserTips(games.map(g => g.id))
           setMessage('')
@@ -200,11 +210,19 @@ export function TippingInterface({
 
   // Round navigation
   const goToPrevRound = () => {
-    if (currentRound > 1) loadGames(currentRound - 1)
+    if (currentRound > 1) {
+      loadGames(currentRound - 1)
+    }
   }
 
   const goToNextRound = () => {
-    if (currentRound < 5) loadGames(currentRound + 1)
+    if (currentRound < 25) {
+      loadGames(currentRound + 1)
+    }
+  }
+
+  const goToRound = (round: number) => {
+    loadGames(round)
   }
 
   // Auto-assign confidence
@@ -223,71 +241,81 @@ export function TippingInterface({
 
   const completedTips = Array.from(userTips.values()).filter(tip => tip.predictedWinner > 0).length
   const totalGames = games.filter(g => !g.isComplete).length
+  const isRoundComplete = games.length > 0 && games.every(g => g.isComplete)
 
   return (
     <div className="w-full min-h-screen bg-gray-50 overflow-x-hidden">
-      {/* RESPONSIVE CONTAINER */}
       <div className="max-w-4xl mx-auto bg-white min-h-screen">
         
-        {/* RESPONSIVE HEADER */}
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 md:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+        {/* STICKY HEADER WITH SAVE */}
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 p-3 md:p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-blue-500 flex-shrink-0" />
+              <Target className="w-5 h-5 text-blue-500" />
               <h1 className="text-lg md:text-xl font-semibold text-gray-900">
-                Round {currentRound} Tipping
+                Round {currentRound} {isRoundComplete ? 'Results' : 'Tipping'}
               </h1>
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-4">
+            <div className="flex items-center gap-2">
               <div className="text-right">
-                <div className="text-lg md:text-xl font-bold text-gray-900">
-                  {completedTips}/{totalGames}
+                <div className="text-lg font-bold text-gray-900">
+                  {completedTips}/{totalGames > 0 ? totalGames : games.length}
                 </div>
                 <div className="text-xs text-gray-500">Tips</div>
               </div>
+              
+              {!isRoundComplete && (
+                <Button
+                  onClick={saveTips}
+                  disabled={saving || completedTips === 0}
+                  className="bg-blue-600 hover:bg-blue-700 ml-2"
+                  size="sm"
+                >
+                  {saving ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save ({completedTips})
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Status and Actions */}
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
                 🧪 Testing Mode
               </span>
-              {completedTips === totalGames && totalGames > 0 && (
+              {isRoundComplete && (
                 <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" />
-                  Complete
+                  Round Complete
+                </span>
+              )}
+              {completedTips === totalGames && totalGames > 0 && !isRoundComplete && (
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  All Tips Complete
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              {allowConfidence && (
-                <Button
-                  onClick={autoAssignConfidence}
-                  disabled={completedTips === 0}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                >
-                  <Star className="w-3 h-3 mr-1" />
-                  Auto
-                </Button>
-              )}
-              
+            {!isRoundComplete && allowConfidence && (
               <Button
-                onClick={saveTips}
-                disabled={saving || completedTips === 0}
-                className="bg-blue-600 hover:bg-blue-700 text-xs"
+                onClick={autoAssignConfidence}
+                disabled={completedTips === 0}
+                variant="outline"
+                size="sm"
+                className="text-xs"
               >
-                {saving ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                ) : (
-                  <Save className="w-3 h-3 mr-1" />
-                )}
-                Save ({completedTips})
+                <Star className="w-3 h-3 mr-1" />
+                Auto Confidence
               </Button>
-            </div>
+            )}
           </div>
 
           {message && (
@@ -299,15 +327,15 @@ export function TippingInterface({
           )}
         </div>
 
-        {/* RESPONSIVE ROUND NAVIGATION */}
-        <div className="sticky top-[120px] md:top-[140px] z-10 bg-white border-b border-gray-200 p-3 md:p-4">
-          <div className="flex items-center justify-center gap-4 md:gap-6">
+        {/* STICKY ROUND NAVIGATION */}
+        <div className="sticky top-[120px] md:top-[130px] z-10 bg-white border-b border-gray-200 p-3">
+          <div className="flex items-center justify-center gap-4 mb-3">
             <Button
               onClick={goToPrevRound}
               disabled={currentRound <= 1 || loading}
               variant="outline"
               size="sm"
-              className="w-8 h-8 md:w-10 md:h-10 p-0"
+              className="w-8 h-8 p-0"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -319,25 +347,25 @@ export function TippingInterface({
             
             <Button
               onClick={goToNextRound}
-              disabled={currentRound >= 5 || loading}
+              disabled={currentRound >= 25 || loading}
               variant="outline"
               size="sm"
-              className="w-8 h-8 md:w-10 md:h-10 p-0"
+              className="w-8 h-8 p-0"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
 
-          {/* Desktop Round Tabs (hidden on mobile) */}
-          <div className="hidden md:flex justify-center gap-2 mt-4">
-            {[1, 2, 3, 4, 5].map(round => (
+          {/* Round Number Grid */}
+          <div className="flex flex-wrap justify-center gap-1">
+            {Array.from({ length: Math.min(10, 25) }, (_, i) => i + 1).map(round => (
               <Button
                 key={round}
-                onClick={() => loadGames(round)}
+                onClick={() => goToRound(round)}
                 disabled={loading}
                 variant={round === currentRound ? "default" : "outline"}
                 size="sm"
-                className="w-10 h-8"
+                className="w-8 h-8 p-0 text-xs"
               >
                 {round}
               </Button>
@@ -345,8 +373,8 @@ export function TippingInterface({
           </div>
         </div>
 
-        {/* RESPONSIVE GAMES LIST */}
-        <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+        {/* GAMES LIST */}
+        <div className="p-3 md:p-4 space-y-4">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
@@ -359,12 +387,13 @@ export function TippingInterface({
             </div>
           ) : (
             games.map((game) => (
-              <ResponsiveGameCard
+              <GameCard
                 key={game.id}
                 game={game}
                 userTip={userTips.get(game.id)}
                 onUpdateTip={(updates) => updateTip(game.id, updates)}
                 allowConfidence={allowConfidence}
+                isRoundComplete={isRoundComplete}
               />
             ))
           )}
@@ -408,15 +437,16 @@ function TeamLogo({ teamName, size = 32 }: { teamName: string, size?: number }) 
   )
 }
 
-// Responsive Game Card
-interface ResponsiveGameCardProps {
+// Game Card Component
+interface GameCardProps {
   game: Game
   userTip?: UserTip
   onUpdateTip: (updates: Partial<UserTip>) => void
   allowConfidence: boolean
+  isRoundComplete: boolean
 }
 
-function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: ResponsiveGameCardProps) {
+function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete }: GameCardProps) {
   const homeTeam = getTeamById(game.homeTeamId)
   const awayTeam = getTeamById(game.awayTeamId)
   const homeColors = getTeamColors(game.homeTeam)
@@ -427,6 +457,21 @@ function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: Res
   const awayLadderPos = LADDER_POSITIONS[game.awayTeamId] || 0
   
   const gameDate = new Date(game.date)
+
+  // Determine winner for completed games
+  const actualWinner = game.isComplete && game.homeScore !== null && game.awayScore !== null 
+    ? (game.homeScore > game.awayScore ? game.homeTeamId : game.awayTeamId)
+    : null
+
+  // Check if tip is correct
+  const isCorrect = userTip?.predictedWinner && actualWinner 
+    ? userTip.predictedWinner === actualWinner 
+    : null
+
+  // Calculate actual margin
+  const actualMargin = game.isComplete && game.homeScore !== null && game.awayScore !== null
+    ? Math.abs(game.homeScore - game.awayScore)
+    : null
 
   // Slider state
   const [sliderValue, setSliderValue] = useState(() => {
@@ -446,6 +491,8 @@ function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: Res
   }, [userTip, game.homeTeamId])
 
   const handleSliderChange = (value: number) => {
+    if (isRoundComplete) return // Don't allow changes when round is complete
+    
     setSliderValue(value)
     
     if (value === 0) {
@@ -457,48 +504,74 @@ function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: Res
     }
   }
 
+  // Get border color based on result
+  const getBorderColor = (teamId: number) => {
+    if (!isRoundComplete || !userTip?.predictedWinner) {
+      return userTip?.predictedWinner === teamId ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+    }
+    
+    if (userTip.predictedWinner === teamId) {
+      return isCorrect ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'
+    }
+    
+    return 'border-gray-200'
+  }
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 md:p-6">
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
       {/* Game Header */}
-      <div className="flex items-center justify-between mb-4 text-sm md:text-base">
+      <div className="flex items-center justify-between mb-4 text-sm">
         <span className="font-medium text-gray-900 truncate flex-1">
           {game.venue}
         </span>
-        <span className="text-gray-500 flex-shrink-0 ml-4">
-          {gameDate.toLocaleDateString('en-AU', { 
-            weekday: 'short', 
-            day: 'numeric',
-            month: 'short'
-          })}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500">
+            {gameDate.toLocaleDateString('en-AU', { 
+              weekday: 'short', 
+              day: 'numeric',
+              month: 'short'
+            })}
+          </span>
+          {isRoundComplete && userTip?.points && (
+            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+              {userTip.points} pts
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Teams - Responsive Layout */}
-      <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
+      {/* Teams */}
+      <div className="space-y-3 mb-4">
         {/* Home Team */}
-        <div className={`p-3 md:p-4 rounded-lg border-2 transition-all ${
-          userTip?.predictedWinner === game.homeTeamId
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-200 hover:border-gray-300'
-        }`}>
+        <div className={`p-3 rounded-lg border-2 transition-all ${getBorderColor(game.homeTeamId)}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-              <TeamLogo teamName={game.homeTeam} size={32} />
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <TeamLogo teamName={game.homeTeam} size={28} />
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-gray-900 text-sm md:text-base truncate">
+                <div className="font-semibold text-gray-900 text-sm">
                   {homeTeam?.nickname || game.homeTeam}
                 </div>
-                <div className="text-xs md:text-sm text-gray-500">
+                <div className="text-xs text-gray-500">
                   Home • #{homeLadderPos}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="hidden sm:block text-xs text-gray-600">
+            <div className="flex items-center gap-3">
+              {isRoundComplete && game.homeScore !== null && (
+                <div className="text-right">
+                  <div className="text-lg font-bold text-gray-900">
+                    {game.homeScore}
+                  </div>
+                  {actualWinner === game.homeTeamId && (
+                    <Trophy className="w-4 h-4 text-yellow-500 mx-auto" />
+                  )}
+                </div>
+              )}
+              <div className="hidden sm:flex gap-1">
                 {homeForm.slice(0, 3).map((match, i) => (
-                  <span
+                  <div
                     key={i}
-                    className={`inline-block w-4 h-4 rounded-full mr-1 ${
+                    className={`w-3 h-3 rounded-full ${
                       match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
                     }`}
                   />
@@ -509,29 +582,35 @@ function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: Res
         </div>
 
         {/* Away Team */}
-        <div className={`p-3 md:p-4 rounded-lg border-2 transition-all ${
-          userTip?.predictedWinner === game.awayTeamId
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-200 hover:border-gray-300'
-        }`}>
+        <div className={`p-3 rounded-lg border-2 transition-all ${getBorderColor(game.awayTeamId)}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-              <TeamLogo teamName={game.awayTeam} size={32} />
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <TeamLogo teamName={game.awayTeam} size={28} />
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-gray-900 text-sm md:text-base truncate">
+                <div className="font-semibold text-gray-900 text-sm">
                   {awayTeam?.nickname || game.awayTeam}
                 </div>
-                <div className="text-xs md:text-sm text-gray-500">
+                <div className="text-xs text-gray-500">
                   Away • #{awayLadderPos}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="hidden sm:block text-xs text-gray-600">
+            <div className="flex items-center gap-3">
+              {isRoundComplete && game.awayScore !== null && (
+                <div className="text-right">
+                  <div className="text-lg font-bold text-gray-900">
+                    {game.awayScore}
+                  </div>
+                  {actualWinner === game.awayTeamId && (
+                    <Trophy className="w-4 h-4 text-yellow-500 mx-auto" />
+                  )}
+                </div>
+              )}
+              <div className="hidden sm:flex gap-1">
                 {awayForm.slice(0, 3).map((match, i) => (
-                  <span
+                  <div
                     key={i}
-                    className={`inline-block w-4 h-4 rounded-full mr-1 ${
+                    className={`w-3 h-3 rounded-full ${
                       match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
                     }`}
                   />
@@ -542,38 +621,88 @@ function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: Res
         </div>
       </div>
 
-      {/* Slider */}
-      <div className="p-3 md:p-4 bg-gray-50 rounded-lg mb-4">
-        <div className="flex items-center justify-between mb-3 text-sm">
-          <span className="font-medium text-gray-700">Winner & Margin</span>
-          <span className="text-gray-600 text-xs md:text-sm">
-            {sliderValue === 0 ? 'No tip selected' : 
-             `${sliderValue < 0 ? homeTeam?.nickname : awayTeam?.nickname} by ${Math.abs(sliderValue)}`}
-          </span>
+      {/* Results Summary for Completed Games */}
+      {isRoundComplete && userTip?.predictedWinner && (
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              {isCorrect ? (
+                <div className="flex items-center gap-1 text-green-700">
+                  <CheckCircle className="w-4 h-4" />
+                  <span className="font-medium">Correct!</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-red-700">
+                  <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                    <span className="text-white text-xs">✗</span>
+                  </div>
+                  <span className="font-medium">Incorrect</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="text-gray-600">
+              {actualMargin && (
+                <span>Margin: {actualMargin} points</span>
+              )}
+              {userTip.marginRank && (
+                <span className="ml-2">
+                  <Award className="w-3 h-3 inline mr-1" />
+                  Rank #{userTip.marginRank}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-        
-        <input
-          type="range"
-          min="-100"
-          max="100"
-          value={sliderValue}
-          onChange={(e) => handleSliderChange(parseInt(e.target.value))}
-          className="w-full h-6 md:h-8 rounded-lg appearance-none cursor-pointer responsive-slider"
-          style={{
-            background: `linear-gradient(to right, 
-              ${homeColors.primary} 0%, 
-              ${homeColors.primary} 45%, 
-              #e5e7eb 45%, 
-              #e5e7eb 55%, 
-              ${awayColors.primary} 55%, 
-              ${awayColors.primary} 100%)`
-          }}
-        />
-      </div>
+      )}
 
-      {/* Confidence */}
-      {allowConfidence && userTip?.predictedWinner && (
-        <div className="pt-4 border-t border-gray-200">
+      {/* Slider - Only show if round not complete */}
+      {!isRoundComplete && (
+        <div className="p-3 bg-gray-50 rounded-lg mb-3">
+          <div className="flex items-center justify-between mb-2 text-sm">
+            <span className="font-medium text-gray-700">Winner & Margin</span>
+            <span className="text-gray-600">
+              {sliderValue === 0 ? 'No tip selected' : 
+               `${sliderValue < 0 ? homeTeam?.nickname : awayTeam?.nickname} by ${Math.abs(sliderValue)}`}
+            </span>
+          </div>
+          
+          <input
+            type="range"
+            min="-100"
+            max="100"
+            value={sliderValue}
+            onChange={(e) => handleSliderChange(parseInt(e.target.value))}
+            className="w-full h-6 rounded-lg appearance-none cursor-pointer responsive-slider"
+            style={{
+              background: `linear-gradient(to right, 
+                ${homeColors.primary} 0%, 
+                ${homeColors.primary} 45%, 
+                #e5e7eb 45%, 
+                #e5e7eb 55%, 
+                ${awayColors.primary} 55%, 
+                ${awayColors.primary} 100%)`
+            }}
+          />
+        </div>
+      )}
+
+      {/* Show selected tip for completed rounds */}
+      {isRoundComplete && userTip?.predictedWinner && (
+        <div className="p-3 bg-gray-50 rounded-lg mb-3">
+          <div className="text-sm">
+            <span className="font-medium text-gray-700">Your Tip: </span>
+            <span className="text-gray-900">
+              {userTip.predictedWinner === game.homeTeamId ? homeTeam?.nickname : awayTeam?.nickname}
+              {userTip.margin && ` by ${userTip.margin}`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Confidence - Only show if round not complete */}
+      {!isRoundComplete && allowConfidence && userTip?.predictedWinner && (
+        <div className="pt-3 border-t border-gray-200">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Confidence (1-9)
           </label>
@@ -589,7 +718,17 @@ function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: Res
         </div>
       )}
 
-      {/* Responsive Slider Styles */}
+      {/* Show confidence for completed rounds */}
+      {isRoundComplete && userTip?.confidence && (
+        <div className="pt-3 border-t border-gray-200">
+          <div className="text-sm">
+            <span className="font-medium text-gray-700">Confidence: </span>
+            <span className="text-gray-900">{userTip.confidence}/9</span>
+          </div>
+        </div>
+      )}
+
+      {/* Slider Styles */}
       <style jsx>{`
         .responsive-slider::-webkit-slider-thumb {
           appearance: none;
@@ -602,13 +741,6 @@ function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: Res
           border: 3px solid white;
         }
         
-        @media (min-width: 768px) {
-          .responsive-slider::-webkit-slider-thumb {
-            height: 28px;
-            width: 28px;
-          }
-        }
-        
         .responsive-slider::-moz-range-thumb {
           height: 24px;
           width: 24px;
@@ -617,13 +749,6 @@ function ResponsiveGameCard({ game, userTip, onUpdateTip, allowConfidence }: Res
           cursor: pointer;
           border: 3px solid white;
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        }
-        
-        @media (min-width: 768px) {
-          .responsive-slider::-moz-range-thumb {
-            height: 28px;
-            width: 28px;
-          }
         }
       `}</style>
     </div>
