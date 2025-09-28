@@ -14,7 +14,9 @@ import {
   TrendingUp,
   Star,
   Shield,
-  Zap
+  Zap,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { getTeamColors, getTeamForm, getTeamFormRecord, getTeamById } from '@/lib/mock-game-service'
 
@@ -242,6 +244,19 @@ export function TippingInterface({
     setTimeout(() => setMessage(''), 3000)
   }
 
+  // Round navigation helpers
+  const goToPrevRound = () => {
+    if (currentRound > 1) {
+      loadGames(currentRound - 1)
+    }
+  }
+
+  const goToNextRound = () => {
+    if (currentRound < 5) {
+      loadGames(currentRound + 1)
+    }
+  }
+
   useEffect(() => {
     loadGames()
   }, [])
@@ -250,32 +265,33 @@ export function TippingInterface({
   const totalGames = games.filter(g => !g.isComplete).length
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden">
-      <div className="max-w-4xl mx-auto px-3 py-4 space-y-4">
-        {/* Mobile-First Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          {/* Title Section */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1 min-w-0 pr-3">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-1">
-                <Target className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                <span>Round {currentRound} Tipping</span>
-              </h3>
-              <p className="text-sm text-gray-600">
-                Make your predictions for Round {currentRound}
-              </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile-First Container */}
+      <div className="max-w-md mx-auto bg-white min-h-screen">
+        {/* Compact Header */}
+        <div className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+          {/* Title Row */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Target className="w-5 h-5 text-blue-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg font-semibold text-gray-900 truncate">
+                  Round {currentRound} Tipping
+                </h1>
+                <p className="text-xs text-gray-600">Make your predictions</p>
+              </div>
             </div>
             <div className="text-right flex-shrink-0">
-              <div className="text-xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900">
                 {completedTips}/{totalGames}
               </div>
               <div className="text-xs text-gray-500">Tips</div>
             </div>
           </div>
 
-          {/* Status Row */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
+          {/* Status and Actions Row */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
               <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
                 🧪 Testing
               </span>
@@ -283,35 +299,31 @@ export function TippingInterface({
               {completedTips === totalGames && totalGames > 0 && (
                 <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" />
-                  Complete
+                  Done
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2">
               {allowConfidence && (
                 <Button
                   onClick={autoAssignConfidence}
                   disabled={completedTips === 0}
                   variant="outline"
                   size="sm"
-                  className="text-xs px-2 py-1 h-7"
+                  className="text-xs h-7 px-2"
                 >
-                  <Star className="w-3 h-3 mr-1" />
-                  Auto
+                  <Star className="w-3 h-3" />
                 </Button>
               )}
               
               <Button
                 onClick={saveTips}
                 disabled={saving || completedTips === 0}
-                className="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1 h-7"
+                className="bg-blue-600 hover:bg-blue-700 text-xs h-7 px-3"
               >
                 {saving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                    ...
-                  </>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                 ) : (
                   <>
                     <Save className="w-3 h-3 mr-1" />
@@ -324,37 +336,49 @@ export function TippingInterface({
 
           {/* Message */}
           {message && (
-            <div className={`mt-3 p-2 rounded-md text-xs ${
+            <div className={`mt-2 p-2 rounded text-xs ${
               message.includes('❌') 
-                ? 'bg-red-50 border border-red-200 text-red-800'
-                : 'bg-green-50 border border-green-200 text-green-800'
+                ? 'bg-red-50 text-red-800'
+                : 'bg-green-50 text-green-800'
             }`}>
               {message}
             </div>
           )}
         </div>
 
-        {/* Round Navigation */}
-        <div className="flex items-center gap-2 px-1">
-          <span className="text-sm font-medium text-gray-700">Round:</span>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map(round => (
-              <Button
-                key={round}
-                onClick={() => loadGames(round)}
-                disabled={loading}
-                variant={round === currentRound ? "default" : "outline"}
-                size="sm"
-                className="w-8 h-8 p-0 text-sm"
-              >
-                {round}
-              </Button>
-            ))}
+        {/* Mobile Round Navigation */}
+        <div className="bg-white border-b border-gray-200 p-3">
+          <div className="flex items-center justify-between">
+            <Button
+              onClick={goToPrevRound}
+              disabled={currentRound <= 1 || loading}
+              variant="outline"
+              size="sm"
+              className="w-10 h-8 p-0"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-medium text-gray-700">Round</span>
+              <span className="text-lg font-bold text-blue-600">{currentRound}</span>
+              <span className="text-sm text-gray-500">of 5</span>
+            </div>
+            
+            <Button
+              onClick={goToNextRound}
+              disabled={currentRound >= 5 || loading}
+              variant="outline"
+              size="sm"
+              className="w-10 h-8 p-0"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
         {/* Games List */}
-        <div className="space-y-3">
+        <div className="p-3 space-y-3">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -363,7 +387,7 @@ export function TippingInterface({
           ) : games.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No games available for Round {currentRound}</p>
+              <p className="text-sm">No games for Round {currentRound}</p>
             </div>
           ) : (
             games.map((game) => (
@@ -383,7 +407,7 @@ export function TippingInterface({
 
         {/* Confidence Summary */}
         {allowConfidence && completedTips > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="p-3 border-t border-gray-200">
             <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
               <TrendingUp className="w-4 h-4 text-purple-500" />
               Confidence Rankings
@@ -418,7 +442,7 @@ export function TippingInterface({
 }
 
 // Enhanced Team Logo Component
-function TeamLogo({ teamName, size = 32, className = "" }: { teamName: string, size?: number, className?: string }) {
+function TeamLogo({ teamName, size = 28, className = "" }: { teamName: string, size?: number, className?: string }) {
   const [hasError, setHasError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const logoUrl = getTeamLogo(teamName)
@@ -445,7 +469,7 @@ function TeamLogo({ teamName, size = 32, className = "" }: { teamName: string, s
           backgroundColor: teamColors.primary,
           fontSize: size * 0.4
         }}
-        title={`${teamName} (logo fallback)`}
+        title={teamName}
       >
         {teamInitial}
       </div>
@@ -477,7 +501,7 @@ function TeamLogo({ teamName, size = 32, className = "" }: { teamName: string, s
   )
 }
 
-// Completely Mobile-Optimized Game Card
+// Mobile-Optimized Game Card
 interface GameTippingCardProps {
   game: Game
   userTip?: UserTip
@@ -531,61 +555,39 @@ function GameTippingCard({
   }
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 w-full ${
+    <div className={`bg-white rounded-lg border border-gray-200 p-3 ${
       isLocked ? 'opacity-75' : ''
     }`}>
-      {/* Game Header - Mobile Optimized */}
-      <div className="flex flex-col gap-2 mb-4">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-gray-900 truncate flex-1 pr-2">
-            Round {game.round} • {game.venue}
-          </div>
-          <div className="text-xs text-gray-500 flex-shrink-0">
-            {gameDate.toLocaleDateString('en-AU', {
-              weekday: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </div>
+      {/* Compact Game Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs font-medium text-gray-900 truncate flex-1">
+          {game.venue}
         </div>
-        
-        {(isComplete || isLocked) && (
-          <div className="flex gap-2">
-            {isComplete && (
-              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                Final: {game.homeScore} - {game.awayScore}
-              </span>
-            )}
-            {isLocked && !isComplete && (
-              <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Locked
-              </span>
-            )}
-          </div>
-        )}
+        <div className="text-xs text-gray-500 flex-shrink-0">
+          {gameDate.toLocaleDateString('en-AU', {
+            weekday: 'short',
+            day: 'numeric'
+          })}
+        </div>
       </div>
 
-      {/* Teams Display - Stacked on Mobile */}
-      <div className="space-y-3 mb-4">
+      {/* Teams Display - Mobile Stacked */}
+      <div className="space-y-2 mb-3">
         {/* Home Team */}
-        <div className={`p-3 rounded-lg border-2 transition-all ${
+        <div className={`p-2 rounded border ${
           userTip?.predictedWinner === game.homeTeamId
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-200'
         }`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <TeamLogo teamName={game.homeTeam} size={32} />
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-gray-900 text-sm truncate">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <TeamLogo teamName={game.homeTeam} size={28} />
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm text-gray-900 truncate">
                   {homeTeam?.nickname || game.homeTeam}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>Home</span>
-                  <span>•</span>
-                  <span className="font-medium">#{homeLadderPos}</span>
+                <div className="text-xs text-gray-500">
+                  Home • #{homeLadderPos}
                 </div>
               </div>
             </div>
@@ -595,15 +597,13 @@ function GameTippingCard({
                 {homeFormRecord.wins}W-{homeFormRecord.losses}L
               </div>
               <div className="flex gap-1">
-                {homeForm.slice(0, 3).map((match, index) => (
+                {homeForm.slice(0, 2).map((match, index) => (
                   <div
                     key={index}
-                    className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                    className={`w-3 h-3 rounded-full ${
                       match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
                     }`}
-                  >
-                    {match.result}
-                  </div>
+                  />
                 ))}
               </div>
             </div>
@@ -611,22 +611,20 @@ function GameTippingCard({
         </div>
 
         {/* Away Team */}
-        <div className={`p-3 rounded-lg border-2 transition-all ${
+        <div className={`p-2 rounded border ${
           userTip?.predictedWinner === game.awayTeamId
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-200'
         }`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <TeamLogo teamName={game.awayTeam} size={32} />
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-gray-900 text-sm truncate">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <TeamLogo teamName={game.awayTeam} size={28} />
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm text-gray-900 truncate">
                   {awayTeam?.nickname || game.awayTeam}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>Away</span>
-                  <span>•</span>
-                  <span className="font-medium">#{awayLadderPos}</span>
+                <div className="text-xs text-gray-500">
+                  Away • #{awayLadderPos}
                 </div>
               </div>
             </div>
@@ -636,15 +634,13 @@ function GameTippingCard({
                 {awayFormRecord.wins}W-{awayFormRecord.losses}L
               </div>
               <div className="flex gap-1">
-                {awayForm.slice(0, 3).map((match, index) => (
+                {awayForm.slice(0, 2).map((match, index) => (
                   <div
                     key={index}
-                    className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                    className={`w-3 h-3 rounded-full ${
                       match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
                     }`}
-                  >
-                    {match.result}
-                  </div>
+                  />
                 ))}
               </div>
             </div>
@@ -652,56 +648,43 @@ function GameTippingCard({
         </div>
       </div>
 
-      {/* Mobile-Optimized Slider */}
+      {/* Mobile Slider */}
       {!isLocked && (
-        <div className="p-3 bg-gray-50 rounded-lg mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-medium text-gray-700">Winner & Margin</div>
+        <div className="p-2 bg-gray-50 rounded">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs font-medium text-gray-700">Winner & Margin</div>
             <div className="text-xs text-gray-500">
               {sliderValue === 0 ? 'No tip' : 
                `${sliderValue < 0 ? homeTeam?.nickname : awayTeam?.nickname} by ${Math.abs(sliderValue)}`}
             </div>
           </div>
           
-          <div className="space-y-2">
-            {/* Simplified Labels */}
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>{homeTeam?.nickname}</span>
-              <span>Draw</span>
-              <span>{awayTeam?.nickname}</span>
-            </div>
-            
-            {/* Mobile-Optimized Slider */}
-            <div className="relative px-2">
-              <input
-                type="range"
-                min="-100"
-                max="100"
-                value={sliderValue}
-                onChange={(e) => handleSliderChange(parseInt(e.target.value))}
-                className="w-full h-4 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                style={{
-                  background: `linear-gradient(to right, 
-                    ${homeColors.primary} 0%, 
-                    ${homeColors.primary} 45%, 
-                    #e5e7eb 45%, 
-                    #e5e7eb 55%, 
-                    ${awayColors.primary} 55%, 
-                    ${awayColors.primary} 100%)`
-                }}
-              />
-              
-              {/* Center indicator */}
-              <div className="absolute top-6 left-1/2 transform -translate-x-1/2 w-px h-3 bg-gray-400"></div>
-            </div>
+          <div className="relative">
+            <input
+              type="range"
+              min="-100"
+              max="100"
+              value={sliderValue}
+              onChange={(e) => handleSliderChange(parseInt(e.target.value))}
+              className="w-full h-6 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              style={{
+                background: `linear-gradient(to right, 
+                  ${homeColors.primary} 0%, 
+                  ${homeColors.primary} 45%, 
+                  #e5e7eb 45%, 
+                  #e5e7eb 55%, 
+                  ${awayColors.primary} 55%, 
+                  ${awayColors.primary} 100%)`
+              }}
+            />
           </div>
         </div>
       )}
 
       {/* Confidence Selection */}
       {allowConfidence && userTip?.predictedWinner && (
-        <div className="pt-3 border-t border-gray-200">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="pt-2 border-t border-gray-200 mt-3">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
             Confidence (1-9)
           </label>
           <input
@@ -711,33 +694,32 @@ function GameTippingCard({
             value={userTip.confidence || ''}
             onChange={(e) => onUpdateTip({ confidence: parseInt(e.target.value) || undefined })}
             disabled={isLocked}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="1 = least confident, 9 = most confident"
+            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="1-9"
           />
         </div>
       )}
 
-      {/* Mobile-Optimized CSS */}
       <style jsx>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
-          height: 32px;
-          width: 32px;
+          height: 24px;
+          width: 24px;
           background: #3b82f6;
           border-radius: 50%;
           cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
           border: 2px solid white;
         }
         
         .slider::-moz-range-thumb {
-          height: 32px;
-          width: 32px;
+          height: 24px;
+          width: 24px;
           background: #3b82f6;
           border-radius: 50%;
           cursor: pointer;
           border: 2px solid white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
       `}</style>
     </div>
