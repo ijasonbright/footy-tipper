@@ -34,7 +34,7 @@ model Competition {
   description String?
   code        String   @unique
   settings    Json     @default("{}")
-  season      Int      @default(2024)
+  season      Int      @default(2025) // Updated to 2025
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -65,9 +65,10 @@ model CompetitionUser {
 
 model Game {
   id              String    @id @default(cuid())
-  squiggleId      String    @unique
+  squiggleId      String?   @unique // Made optional for testing games
   round           Int
-  season          Int       @default(2024)
+  season          Int       @default(2025) // Updated to 2025 
+  year            Int       @default(2025) // Added for compatibility with your API
   homeTeam        String
   awayTeam        String
   homeTeamId      Int
@@ -84,6 +85,8 @@ model Game {
   // Relationships  
   tips            Tip[]
   
+  @@index([year, round])
+  @@index([isComplete])
   @@map("games")
 }
 
@@ -96,6 +99,12 @@ model Tip {
   margin           Int?
   confidence       Int?     // 1-9 ranking
   points           Int      @default(0)
+  
+  // NEW FIELDS FOR ENHANCED FUNCTIONALITY
+  isCorrect        Boolean? // null = game not complete, true/false = result
+  marginRank       Int?     // Position in margin accuracy ranking (1 = most accurate)
+  marginAccuracy   Int?     // How many points off the actual margin
+  
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
@@ -105,17 +114,37 @@ model Tip {
   competition      Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
   
   @@unique([userId, gameId, competitionId])
+  @@index([competitionId])
+  @@index([gameId])
+  @@index([userId])
   @@map("tips")
 }
 
 model Team {
-  id          Int      @id
-  name        String   @unique
-  nickname    String
-  abbreviation String  @unique
-  primaryColor String?
-  secondaryColor String?
-  logo        String?
+  id               Int      @id
+  name             String   @unique
+  nickname         String
+  abbreviation     String   @unique
+  primaryColor     String?
+  secondaryColor   String?
+  logo             String?
   
   @@map("teams")
+}
+
+// Optional: Store leaderboard snapshots for historical tracking
+model LeaderboardSnapshot {
+  id            String   @id @default(cuid())
+  competitionId String
+  round         Int
+  userId        String
+  rank          Int
+  totalPoints   Int
+  correctTips   Int
+  totalTips     Int
+  createdAt     DateTime @default(now())
+  
+  @@unique([competitionId, round, userId])
+  @@index([competitionId, round])
+  @@map("leaderboard_snapshots")
 }

@@ -244,11 +244,10 @@ export function TippingInterface({
   const isRoundComplete = games.length > 0 && games.every(g => g.isComplete)
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 overflow-x-hidden">
-      <div className="max-w-4xl mx-auto bg-white min-h-screen">
-        
-        {/* STICKY HEADER WITH SAVE */}
-        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 p-3 md:p-4 shadow-sm">
+    <div className="w-full bg-gray-50">
+      {/* FIXED STICKY HEADER WITH SAVE - Higher z-index */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-4xl mx-auto p-3 md:p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-500" />
@@ -326,9 +325,11 @@ export function TippingInterface({
             </div>
           )}
         </div>
+      </div>
 
-        {/* STICKY ROUND NAVIGATION */}
-        <div className="sticky top-[120px] md:top-[130px] z-10 bg-white border-b border-gray-200 p-3">
+      {/* FIXED STICKY ROUND NAVIGATION - Below header */}
+      <div className="fixed top-[120px] md:top-[130px] left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-4xl mx-auto p-3">
           <div className="flex items-center justify-center gap-4 mb-3">
             <Button
               onClick={goToPrevRound}
@@ -372,9 +373,11 @@ export function TippingInterface({
             ))}
           </div>
         </div>
+      </div>
 
-        {/* GAMES LIST */}
-        <div className="p-3 md:p-4 space-y-4">
+      {/* MAIN CONTENT - With top padding to account for fixed headers */}
+      <div className="pt-[200px] md:pt-[210px]">
+        <div className="max-w-4xl mx-auto p-3 md:p-4 space-y-4">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
@@ -437,7 +440,7 @@ function TeamLogo({ teamName, size = 32 }: { teamName: string, size?: number }) 
   )
 }
 
-// Game Card Component
+// Game Card Component with Fixed Margin Ranking
 interface GameCardProps {
   game: Game
   userTip?: UserTip
@@ -471,6 +474,11 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
   // Calculate actual margin
   const actualMargin = game.isComplete && game.homeScore !== null && game.awayScore !== null
     ? Math.abs(game.homeScore - game.awayScore)
+    : null
+
+  // Calculate margin accuracy (how close was the prediction)
+  const marginAccuracy = userTip?.margin && actualMargin 
+    ? Math.abs(userTip.margin - actualMargin)
     : null
 
   // Slider state
@@ -621,7 +629,7 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
         </div>
       </div>
 
-      {/* Results Summary for Completed Games */}
+      {/* Results Summary for Completed Games - Fixed Margin Ranking */}
       {isRoundComplete && userTip?.predictedWinner && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center justify-between text-sm">
@@ -641,15 +649,20 @@ function GameCard({ game, userTip, onUpdateTip, allowConfidence, isRoundComplete
               )}
             </div>
             
-            <div className="text-gray-600">
+            <div className="text-gray-600 text-right">
               {actualMargin && (
-                <span>Margin: {actualMargin} points</span>
+                <div>Actual margin: {actualMargin} points</div>
+              )}
+              {marginAccuracy !== null && (
+                <div className="text-xs">
+                  Off by: {marginAccuracy} points
+                </div>
               )}
               {userTip.marginRank && (
-                <span className="ml-2">
-                  <Award className="w-3 h-3 inline mr-1" />
-                  Rank #{userTip.marginRank}
-                </span>
+                <div className="flex items-center gap-1 text-blue-600">
+                  <Award className="w-3 h-3" />
+                  <span className="font-medium">#{userTip.marginRank} closest margin</span>
+                </div>
               )}
             </div>
           </div>
