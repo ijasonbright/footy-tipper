@@ -16,7 +16,7 @@ import {
   Shield,
   Zap
 } from 'lucide-react'
-import { getTeamColors, getTeamLogo, getTeamForm, getTeamFormRecord, getTeamById } from '@/lib/mock-game-service'
+import { getTeamColors, getTeamForm, getTeamFormRecord, getTeamById } from '@/lib/mock-game-service'
 
 interface Game {
   id: string
@@ -48,6 +48,28 @@ interface TippingInterfaceProps {
     allowMargin?: boolean
     scoringSystem?: string
   }
+}
+
+// Mock ladder positions (you can replace with real data from Squiggle API)
+const LADDER_POSITIONS: Record<number, number> = {
+  1: 8,   // Adelaide - 8th
+  2: 2,   // Brisbane Lions - 2nd
+  3: 4,   // Carlton - 4th
+  4: 6,   // Collingwood - 6th
+  5: 11,  // Essendon - 11th
+  6: 9,   // Fremantle - 9th
+  7: 3,   // Geelong - 3rd
+  8: 15,  // Gold Coast - 15th
+  9: 7,   // GWS - 7th
+  10: 12, // Hawthorn - 12th
+  11: 5,  // Melbourne - 5th
+  12: 18, // North Melbourne - 18th
+  13: 1,  // Port Adelaide - 1st
+  14: 13, // Richmond - 13th
+  15: 10, // St Kilda - 10th
+  16: 14, // Sydney - 14th
+  17: 16, // West Coast - 16th
+  18: 17  // Western Bulldogs - 17th
 }
 
 export function TippingInterface({ 
@@ -398,15 +420,64 @@ function GameTippingCard({
   const awayTeam = getTeamById(game.awayTeamId)
   const homeColors = getTeamColors(game.homeTeam)
   const awayColors = getTeamColors(game.awayTeam)
-  const homeLogo = getTeamLogo(game.homeTeam)
-  const awayLogo = getTeamLogo(game.awayTeam)
   const homeForm = getTeamForm(game.homeTeamId)
   const awayForm = getTeamForm(game.awayTeamId)
   const homeFormRecord = getTeamFormRecord(game.homeTeamId)
   const awayFormRecord = getTeamFormRecord(game.awayTeamId)
+  const homeLadderPos = LADDER_POSITIONS[game.homeTeamId] || 0
+  const awayLadderPos = LADDER_POSITIONS[game.awayTeamId] || 0
   
   const gameDate = new Date(game.date)
   const isComplete = game.isComplete
+
+  // Slider state for winner/margin selection
+  const [sliderValue, setSliderValue] = useState(() => {
+    if (!userTip?.predictedWinner) return 0
+    const margin = userTip.margin || 1
+    return userTip.predictedWinner === game.homeTeamId ? -margin : margin
+  })
+
+  // Convert slider value to tip
+  const handleSliderChange = (value: number) => {
+    setSliderValue(value)
+    
+    if (value === 0) {
+      // Neutral position - no tip
+      onUpdateTip({ predictedWinner: 0, margin: 0 })
+    } else {
+      const winner = value < 0 ? game.homeTeamId : game.awayTeamId
+      const margin = Math.abs(value)
+      onUpdateTip({ predictedWinner: winner, margin })
+    }
+  }
+
+  // Get team logo URL from Squiggle API
+  const getTeamLogo = (teamName: string) => {
+    const logoMap: Record<string, string> = {
+      'Adelaide': 'https://squiggle.com.au/static/logos/ade.svg',
+      'Brisbane Lions': 'https://squiggle.com.au/static/logos/brl.svg',
+      'Carlton': 'https://squiggle.com.au/static/logos/car.svg',
+      'Collingwood': 'https://squiggle.com.au/static/logos/col.svg',
+      'Essendon': 'https://squiggle.com.au/static/logos/ess.svg',
+      'Fremantle': 'https://squiggle.com.au/static/logos/fre.svg',
+      'Geelong': 'https://squiggle.com.au/static/logos/gee.svg',
+      'Gold Coast': 'https://squiggle.com.au/static/logos/gcs.svg',
+      'GWS': 'https://squiggle.com.au/static/logos/gws.svg',
+      'Hawthorn': 'https://squiggle.com.au/static/logos/haw.svg',
+      'Melbourne': 'https://squiggle.com.au/static/logos/mel.svg',
+      'North Melbourne': 'https://squiggle.com.au/static/logos/nth.svg',
+      'Port Adelaide': 'https://squiggle.com.au/static/logos/por.svg',
+      'Richmond': 'https://squiggle.com.au/static/logos/ric.svg',
+      'St Kilda': 'https://squiggle.com.au/static/logos/stk.svg',
+      'Sydney': 'https://squiggle.com.au/static/logos/syd.svg',
+      'West Coast': 'https://squiggle.com.au/static/logos/wce.svg',
+      'Western Bulldogs': 'https://squiggle.com.au/static/logos/wbd.svg',
+    }
+    return logoMap[teamName] || ''
+  }
+
+  const homeLogo = getTeamLogo(game.homeTeam)
+  const awayLogo = getTeamLogo(game.awayTeam)
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 ${
@@ -441,18 +512,14 @@ function GameTippingCard({
         </div>
       </div>
 
-      {/* Team Selection */}
+      {/* Teams Display */}
       <div className="grid grid-cols-2 gap-6 mb-6">
         {/* Home Team */}
-        <button
-          onClick={() => !isLocked && onUpdateTip({ predictedWinner: game.homeTeamId })}
-          disabled={isLocked}
-          className={`p-4 rounded-lg border-2 transition-all ${
-            userTip?.predictedWinner === game.homeTeamId
-              ? 'border-blue-500 bg-blue-50 shadow-md'
-              : 'border-gray-200 hover:border-gray-300'
-          } ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}`}
-        >
+        <div className={`p-4 rounded-lg border-2 ${
+          userTip?.predictedWinner === game.homeTeamId
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-200'
+        }`}>
           <div className="space-y-3">
             {/* Team Header */}
             <div className="flex items-center gap-3">
@@ -460,25 +527,32 @@ function GameTippingCard({
                 <img 
                   src={homeLogo} 
                   alt={`${game.homeTeam} logo`}
-                  className="w-8 h-8 object-contain"
+                  className="w-10 h-10 object-contain"
                   onError={(e) => {
-                    // Fallback to color circle if logo fails to load
-                    e.currentTarget.style.display = 'none'
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                    // Fallback to color circle if logo fails
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    const fallback = target.nextElementSibling as HTMLElement
                     if (fallback) fallback.style.display = 'block'
                   }}
                 />
               ) : null}
               <div 
-                className="w-8 h-8 rounded-full"
+                className="w-10 h-10 rounded-full flex-shrink-0"
                 style={{ 
                   backgroundColor: homeColors.primary,
                   display: homeLogo ? 'none' : 'block'
                 }}
               />
-              <div className="text-left flex-1">
-                <div className="font-semibold text-gray-900">{homeTeam?.nickname || game.homeTeam}</div>
-                <div className="text-xs text-gray-500">Home</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-gray-900 truncate">
+                  {homeTeam?.nickname || game.homeTeam}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span>Home</span>
+                  <span>•</span>
+                  <span className="font-medium">#{homeLadderPos}</span>
+                </div>
               </div>
             </div>
 
@@ -505,18 +579,14 @@ function GameTippingCard({
               </div>
             </div>
           </div>
-        </button>
+        </div>
 
         {/* Away Team */}
-        <button
-          onClick={() => !isLocked && onUpdateTip({ predictedWinner: game.awayTeamId })}
-          disabled={isLocked}
-          className={`p-4 rounded-lg border-2 transition-all ${
-            userTip?.predictedWinner === game.awayTeamId
-              ? 'border-blue-500 bg-blue-50 shadow-md'
-              : 'border-gray-200 hover:border-gray-300'
-          } ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}`}
-        >
+        <div className={`p-4 rounded-lg border-2 ${
+          userTip?.predictedWinner === game.awayTeamId
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-200'
+        }`}>
           <div className="space-y-3">
             {/* Team Header */}
             <div className="flex items-center gap-3">
@@ -524,24 +594,31 @@ function GameTippingCard({
                 <img 
                   src={awayLogo} 
                   alt={`${game.awayTeam} logo`}
-                  className="w-8 h-8 object-contain"
+                  className="w-10 h-10 object-contain"
                   onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    const fallback = target.nextElementSibling as HTMLElement
                     if (fallback) fallback.style.display = 'block'
                   }}
                 />
               ) : null}
               <div 
-                className="w-8 h-8 rounded-full"
+                className="w-10 h-10 rounded-full flex-shrink-0"
                 style={{ 
                   backgroundColor: awayColors.primary,
                   display: awayLogo ? 'none' : 'block'
                 }}
               />
-              <div className="text-left flex-1">
-                <div className="font-semibold text-gray-900">{awayTeam?.nickname || game.awayTeam}</div>
-                <div className="text-xs text-gray-500">Away</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-gray-900 truncate">
+                  {awayTeam?.nickname || game.awayTeam}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span>Away</span>
+                  <span>•</span>
+                  <span className="font-medium">#{awayLadderPos}</span>
+                </div>
               </div>
             </div>
 
@@ -568,49 +645,94 @@ function GameTippingCard({
               </div>
             </div>
           </div>
-        </button>
+        </div>
       </div>
 
-      {/* Additional Options */}
-      {(allowMargin || allowConfidence) && userTip?.predictedWinner && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-          {allowMargin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Winning Margin
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={userTip.margin || ''}
-                onChange={(e) => onUpdateTip({ margin: parseInt(e.target.value) || undefined })}
-                disabled={isLocked}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g. 12 points"
-              />
+      {/* Interactive Slider for Winner/Margin Selection */}
+      {!isLocked && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-medium text-gray-700">Winner & Margin</div>
+            <div className="text-sm text-gray-500">
+              {sliderValue === 0 ? 'No tip selected' : 
+               `${sliderValue < 0 ? homeTeam?.nickname : awayTeam?.nickname} by ${Math.abs(sliderValue)} points`}
             </div>
-          )}
-
-          {allowConfidence && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confidence (1-9)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="9"
-                value={userTip.confidence || ''}
-                onChange={(e) => onUpdateTip({ confidence: parseInt(e.target.value) || undefined })}
-                disabled={isLocked}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="1 = least confident, 9 = most confident"
-              />
+          </div>
+          
+          <div className="relative">
+            {/* Slider Track Labels */}
+            <div className="flex justify-between text-xs text-gray-500 mb-2">
+              <span>{homeTeam?.nickname} by 100</span>
+              <span>Draw</span>
+              <span>{awayTeam?.nickname} by 100</span>
             </div>
-          )}
+            
+            {/* Slider */}
+            <input
+              type="range"
+              min="-100"
+              max="100"
+              value={sliderValue}
+              onChange={(e) => handleSliderChange(parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              style={{
+                background: `linear-gradient(to right, 
+                  ${homeColors.primary} 0%, 
+                  ${homeColors.primary} 45%, 
+                  #e5e7eb 45%, 
+                  #e5e7eb 55%, 
+                  ${awayColors.primary} 55%, 
+                  ${awayColors.primary} 100%)`
+              }}
+            />
+            
+            {/* Center line indicator */}
+            <div className="absolute top-6 left-1/2 transform -translate-x-1/2 w-px h-4 bg-gray-400"></div>
+          </div>
         </div>
       )}
+
+      {/* Confidence Selection */}
+      {allowConfidence && userTip?.predictedWinner && (
+        <div className="pt-4 border-t border-gray-200">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Confidence Level (1-9)
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="9"
+            value={userTip.confidence || ''}
+            onChange={(e) => onUpdateTip({ confidence: parseInt(e.target.value) || undefined })}
+            disabled={isLocked}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="1 = least confident, 9 = most confident"
+          />
+        </div>
+      )}
+
+      {/* Custom CSS for slider */}
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 20px;
+          width: 20px;
+          background: #3b82f6;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .slider::-moz-range-thumb {
+          height: 20px;
+          width: 20px;
+          background: #3b82f6;
+          border-radius: 50%;
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+      `}</style>
     </div>
   )
 }
