@@ -393,14 +393,52 @@ export function TippingInterface({
       {/* MOBILE TOP BANNER */}
       <div className="md:hidden bg-white border-b border-gray-200 shadow-sm">
         <div className="p-3">
-          <div className="flex items-center justify-between">
+          {/* AFL Tipper Pro Header */}
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-500" />
-              <h1 className="text-lg font-semibold text-gray-900">
-                Round {currentRound} {isRoundComplete ? 'Results' : 'Tipping'}
-              </h1>
+              <h1 className="text-lg font-bold text-gray-900">AFL Tipper Pro</h1>
             </div>
             
+            {/* Hamburger Menu (placeholder for future menu) */}
+            <button className="p-2">
+              <div className="w-5 h-5 flex flex-col justify-center space-y-1">
+                <div className="w-5 h-0.5 bg-gray-600"></div>
+                <div className="w-5 h-0.5 bg-gray-600"></div>
+                <div className="w-5 h-0.5 bg-gray-600"></div>
+              </div>
+            </button>
+          </div>
+
+          {/* Round Navigation Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={goToPrevRound}
+                disabled={currentRound <= 1 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              <div className="text-center">
+                <div className="text-xl font-bold text-blue-600">Round {currentRound}</div>
+              </div>
+              
+              <Button
+                onClick={goToNextRound}
+                disabled={currentRound >= 25 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Save Button */}
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <div className="text-lg font-bold text-gray-900">
@@ -428,59 +466,13 @@ export function TippingInterface({
               )}
             </div>
           </div>
-
-          {/* Mobile Round Navigation */}
-          <div className="mt-3">
-            <div className="flex items-center justify-center gap-4 mb-3">
-              <Button
-                onClick={goToPrevRound}
-                disabled={currentRound <= 1 || loading}
-                variant="outline"
-                size="sm"
-                className="w-8 h-8 p-0"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              
-              <div className="text-center">
-                <div className="text-sm font-medium text-gray-700">Round</div>
-                <div className="text-xl font-bold text-blue-600">{currentRound}</div>
-              </div>
-              
-              <Button
-                onClick={goToNextRound}
-                disabled={currentRound >= 25 || loading}
-                variant="outline"
-                size="sm"
-                className="w-8 h-8 p-0"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Round Number Grid */}
-            <div className="flex flex-wrap justify-center gap-1">
-              {Array.from({ length: Math.min(10, 25) }, (_, i) => i + 1).map(round => (
-                <Button
-                  key={round}
-                  onClick={() => goToRound(round)}
-                  disabled={loading}
-                  variant={round === currentRound ? "default" : "outline"}
-                  size="sm"
-                  className="w-8 h-8 p-0 text-xs"
-                >
-                  {round}
-                </Button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
       {/* MAIN CONTAINER */}
       <div className="max-w-7xl mx-auto">
-        {/* TAB NAVIGATION */}
-        <div className="bg-white border-b border-gray-200">
+        {/* TAB NAVIGATION - Desktop Only */}
+        <div className="hidden md:block bg-white border-b border-gray-200">
           <div className="px-4">
             <nav className="flex space-x-8" aria-label="Tabs">
               <button
@@ -541,10 +533,11 @@ export function TippingInterface({
 
         {/* TAB CONTENT */}
         <div className="p-4">
-          {activeTab === 'tipping' && (
+          {/* Mobile shows tipping directly, Desktop shows based on activeTab */}
+          {(activeTab === 'tipping' || true) && (
             <div className="space-y-4">
-              {/* Status Messages */}
-              <div className="flex items-center justify-between gap-3">
+              {/* Status Messages - Desktop Only */}
+              <div className="hidden md:flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
                     🧪 Testing Mode
@@ -606,8 +599,9 @@ export function TippingInterface({
             </div>
           )}
 
+          {/* Desktop-only tabs */}
           {activeTab === 'leaderboard' && (
-            <div className="max-w-4xl">
+            <div className="hidden md:block max-w-4xl">
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Leaderboard - Round {currentRound}</h3>
                 <div className="space-y-3">
@@ -651,7 +645,7 @@ export function TippingInterface({
           )}
 
           {activeTab === 'overview' && (
-            <div className="max-w-4xl">
+            <div className="hidden md:block max-w-4xl">
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Competition Overview</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -673,7 +667,7 @@ export function TippingInterface({
           )}
 
           {activeTab === 'settings' && (
-            <div className="max-w-4xl">
+            <div className="hidden md:block max-w-4xl">
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Competition Settings</h3>
                 <div className="space-y-4">

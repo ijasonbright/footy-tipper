@@ -6,10 +6,10 @@ import {
   SignInButton,
   SignUpButton,
   SignedIn,
-  SignedOut,
-  UserButton
+  SignedOut
 } from '@clerk/nextjs'
 import { Providers } from './providers'
+import { CustomUserButton } from '@/components/custom-user-button'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -61,7 +61,7 @@ export default function RootLayout({
                   </SignUpButton>
                 </SignedOut>
                 <SignedIn>
-                  <UserButton />
+                  <CustomUserButton />
                 </SignedIn>
               </div>
             </div>
