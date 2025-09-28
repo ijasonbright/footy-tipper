@@ -269,120 +269,6 @@ export function TippingInterface({
 
   return (
     <div className="w-full bg-gray-50 min-h-screen">
-      {/* DESKTOP TOP BANNER */}
-      <div className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Left: Just the logo */}
-            <div className="flex items-center gap-2">
-              <Target className="w-6 h-6 text-blue-500" />
-              <h1 className="text-xl font-bold text-gray-900">AFL Tipper Pro</h1>
-            </div>
-
-            {/* Center: Round Navigation */}
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={goToPrevRound}
-                disabled={currentRound <= 1 || loading}
-                variant="outline"
-                size="sm"
-                className="w-8 h-8 p-0"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              
-              <div className="text-center">
-                <div className="text-sm font-medium text-gray-700">Round</div>
-                <div className="text-xl font-bold text-blue-600">{currentRound}</div>
-              </div>
-              
-              <Button
-                onClick={goToNextRound}
-                disabled={currentRound >= 25 || loading}
-                variant="outline"
-                size="sm"
-                className="w-8 h-8 p-0"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-
-              {/* Round Number Buttons */}
-              <div className="flex gap-1 ml-4">
-                {Array.from({ length: Math.min(10, 25) }, (_, i) => i + 1).map(round => (
-                  <Button
-                    key={round}
-                    onClick={() => goToRound(round)}
-                    disabled={loading}
-                    variant={round === currentRound ? "default" : "outline"}
-                    size="sm"
-                    className="w-8 h-8 p-0 text-xs"
-                  >
-                    {round}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Admin Toggle and Save */}
-            <div className="flex items-center gap-3">
-              {/* Admin View Toggle */}
-              {isAdmin && (
-                <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
-                  <Button
-                    onClick={() => {}} // View mode is now handled in UserButton menu
-                    variant={viewMode === 'user' ? 'default' : 'ghost'}
-                    size="sm"
-                    className="text-xs h-8"
-                    disabled
-                  >
-                    <Eye className="w-3 h-3 mr-1" />
-                    User View
-                  </Button>
-                  <Button
-                    onClick={() => {}} // View mode is now handled in UserButton menu
-                    variant={viewMode === 'admin' ? 'default' : 'ghost'}
-                    size="sm"
-                    className="text-xs h-8"
-                    disabled
-                  >
-                    <UserCog className="w-3 h-3 mr-1" />
-                    Admin View
-                  </Button>
-                </div>
-              )}
-
-              {/* Save Button */}
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <div className="text-lg font-bold text-gray-900">
-                    {completedTips}/{totalGames > 0 ? totalGames : games.length}
-                  </div>
-                  <div className="text-xs text-gray-500">Tips</div>
-                </div>
-                
-                {!isRoundComplete && (
-                  <Button
-                    onClick={saveTips}
-                    disabled={saving || completedTips === 0}
-                    className="bg-blue-600 hover:bg-blue-700"
-                    size="sm"
-                  >
-                    {saving ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-1" />
-                        Save ({completedTips})
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* MOBILE TOP BANNER */}
       <div className="md:hidden bg-white border-b border-gray-200 shadow-sm">
         <div className="p-3">
@@ -462,220 +348,157 @@ export function TippingInterface({
         </div>
       </div>
 
+      {/* DESKTOP TOP BANNER */}
+      <div className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left: Just the logo */}
+            <div className="flex items-center gap-2">
+              <Target className="w-6 h-6 text-blue-500" />
+              <h1 className="text-xl font-bold text-gray-900">AFL Tipper Pro</h1>
+            </div>
+
+            {/* Center: Round Navigation */}
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={goToPrevRound}
+                disabled={currentRound <= 1 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-700">Round</div>
+                <div className="text-xl font-bold text-blue-600">{currentRound}</div>
+              </div>
+              
+              <Button
+                onClick={goToNextRound}
+                disabled={currentRound >= 25 || loading}
+                variant="outline"
+                size="sm"
+                className="w-8 h-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+
+              {/* Round Number Buttons */}
+              <div className="flex gap-1 ml-4">
+                {Array.from({ length: Math.min(10, 25) }, (_, i) => i + 1).map(round => (
+                  <Button
+                    key={round}
+                    onClick={() => goToRound(round)}
+                    disabled={loading}
+                    variant={round === currentRound ? "default" : "outline"}
+                    size="sm"
+                    className="w-8 h-8 p-0 text-xs"
+                  >
+                    {round}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Save Button Only */}
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-900">
+                  {completedTips}/{totalGames > 0 ? totalGames : games.length}
+                </div>
+                <div className="text-xs text-gray-500">Tips</div>
+              </div>
+              
+              {!isRoundComplete && (
+                <Button
+                  onClick={saveTips}
+                  disabled={saving || completedTips === 0}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  size="sm"
+                >
+                  {saving ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save ({completedTips})
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* MAIN CONTAINER */}
       <div className="max-w-7xl mx-auto p-4">
-        {/* TAB NAVIGATION - Desktop Only */}
-        <div className="hidden md:block mb-4">
-          <nav className="flex space-x-8" aria-label="Tabs">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'overview'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Overview
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('leaderboard')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'leaderboard'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4" />
-                Leaderboard
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('tipping')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'tipping'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4" />
-                Tipping
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'settings'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Settings
-              </div>
-            </button>
-          </nav>
-        </div>
-
-        {/* TAB CONTENT */}
+        {/* GAMES CONTENT - Direct display, no tabs */}
         <div className="space-y-4">
-          {/* Mobile shows tipping directly, Desktop shows based on activeTab */}
-          {(activeTab === 'tipping' || true) && (
-            <div className="space-y-4">
-              {/* Status Messages - Desktop Only */}
-              <div className="hidden md:flex items-center justify-between gap-3">
-                {!isRoundComplete && allowConfidence && (
-                  <Button
-                    onClick={autoAssignConfidence}
-                    disabled={completedTips === 0}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                  >
-                    <Star className="w-3 h-3 mr-1" />
-                    Auto
-                  </Button>
-                )}
-              </div>
-
-              {message && (
-                <div className={`p-2 rounded text-xs ${
-                  message.includes('❌') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
-                }`}>
-                  {message}
-                </div>
-              )}
-
-              {/* Games */}
-              {loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                  <p className="text-gray-600 text-sm">Loading games...</p>
-                </div>
-              ) : games.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Calendar className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No games available for Round {currentRound}</p>
-                </div>
-              ) : (
-                games.map((game) => (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    userTip={userTips.get(game.id)}
-                    onUpdateTip={(updates) => updateTip(game.id, updates)}
-                    allowConfidence={allowConfidence}
-                    isRoundComplete={isRoundComplete}
-                    onShowTeamDetail={(teamId) => setShowTeamModal({show: true, teamId})}
-                  />
-                ))
-              )}
+          {message && (
+            <div className={`p-2 rounded text-xs ${
+              message.includes('❌') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
+            }`}>
+              {message}
             </div>
           )}
 
-          {/* Desktop-only tabs */}
-          {activeTab === 'leaderboard' && (
-            <div className="hidden md:block max-w-4xl">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Leaderboard - Round {currentRound}</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">J</div>
-                      <div>
-                        <div className="font-medium text-gray-900">jasonbright</div>
-                        <div className="text-sm text-gray-500">0/0 correct</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-gray-900">0</div>
-                      <div className="text-sm text-gray-500">points</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">J</div>
-                      <div>
-                        <div className="font-medium text-gray-900">jasontipper</div>
-                        <div className="text-sm text-gray-500">0/0 correct</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-gray-900">0</div>
-                      <div className="text-sm text-gray-500">points</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-4 text-center text-sm text-gray-500">
-                  <p>Showing 2 participants</p>
-                  <p>Rankings update after each round</p>
-                </div>
-              </div>
+          {/* Games */}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
+              <p className="text-gray-600 text-sm">Loading games...</p>
             </div>
-          )}
-
-          {activeTab === 'overview' && (
-            <div className="hidden md:block max-w-4xl">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Competition Overview</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">2</div>
-                    <div className="text-sm text-gray-600">Total Members</div>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{currentRound}</div>
-                    <div className="text-sm text-gray-600">Current Round</div>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">2025</div>
-                    <div className="text-sm text-gray-600">Season</div>
-                  </div>
-                </div>
-              </div>
+          ) : games.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Calendar className="w-6 h-6 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No games available for Round {currentRound}</p>
             </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div className="hidden md:block max-w-4xl">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Competition Settings</h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Competition Code</label>
-                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">72TLRT</div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Scoring System</label>
-                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">Standard</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center">
-                      <input type="checkbox" checked={allowConfidence} disabled className="mr-2" />
-                      <span className="text-sm text-gray-700">Allow Confidence Rankings</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input type="checkbox" checked={allowMargin} disabled className="mr-2" />
-                      <span className="text-sm text-gray-700">Allow Margin Predictions</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
+          ) : (
+            games.map((game) => (
+              <GameCard
+                key={game.id}
+                game={game}
+                userTip={userTips.get(game.id)}
+                onUpdateTip={(updates) => updateTip(game.id, updates)}
+                allowConfidence={allowConfidence}
+                isRoundComplete={isRoundComplete}
+                onShowTeamDetail={(teamId) => setShowTeamModal({show: true, teamId})}
+              />
+            ))
           )}
         </div>
       </div>
+
+      {/* ADMIN TOGGLE - Bottom of page, only if admin */}
+      {isAdmin && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <div className="flex items-center gap-2 p-2 bg-white rounded-lg shadow-lg border border-gray-200">
+            <Button
+              onClick={() => {}} // Controlled by UserButton menu
+              variant={viewMode === 'user' ? 'default' : 'ghost'}
+              size="sm"
+              className="text-xs"
+              disabled
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              User
+            </Button>
+            <Button
+              onClick={() => {}} // Controlled by UserButton menu
+              variant={viewMode === 'admin' ? 'default' : 'ghost'}
+              size="sm"
+              className="text-xs"
+              disabled
+            >
+              <UserCog className="w-3 h-3 mr-1" />
+              Admin
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Team Detail Modal */}
       {showTeamModal.show && showTeamModal.teamId && (
