@@ -72,26 +72,28 @@ const LADDER_POSITIONS: Record<number, number> = {
   18: 17  // Western Bulldogs - 17th
 }
 
-// Correct Squiggle logo URLs (using the WordPress theme directory)
+// Correct Squiggle logo URLs based on the API feed you showed
 const getTeamLogo = (teamName: string): string => {
   const logoMap: Record<string, string> = {
-    'Adelaide': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Crows.png',
-    'Brisbane Lions': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Lions.png',
-    'Carlton': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Blues.png',
-    'Collingwood': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Magpies.png',
-    'Essendon': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Bombers.png',
-    'Fremantle': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Dockers.png',
-    'Geelong': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Cats.png',
-    'Gold Coast': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Suns.png',
+    // Using exact paths from Squiggle API feed
+    'Adelaide': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Adelaide.png',
+    'Brisbane Lions': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Brisbane.png',
+    'Carlton': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Carlton.png',
+    'Collingwood': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Collingwood.png',
+    'Essendon': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Essendon.png',
+    'Fremantle': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Fremantle.png',
+    'Geelong': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Geelong.png',
+    'Gold Coast': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/GoldCoast.png',
     'GWS': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Giants.png',
-    'Hawthorn': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Hawks.png',
-    'Melbourne': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Demons.png',
-    'North Melbourne': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Kangaroos.png',
-    'Port Adelaide': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Power.png',
-    'Richmond': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Tigers.png',
-    'St Kilda': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Saints.png',
-    'Sydney': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Swans.png',
-    'West Coast': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Eagles.png',
+    'Greater Western Sydney': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Giants.png',
+    'Hawthorn': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Hawthorn.png',
+    'Melbourne': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Melbourne.png',
+    'North Melbourne': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/NorthMelbourne.png',
+    'Port Adelaide': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/PortAdelaide.png',
+    'Richmond': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Richmond.png',
+    'St Kilda': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/StKilda.png',
+    'Sydney': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Sydney.png',
+    'West Coast': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/WestCoast.png',
     'Western Bulldogs': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Bulldogs.png'
   }
   
@@ -420,16 +422,20 @@ export function TippingInterface({
 // Enhanced Team Logo Component with correct Squiggle URLs
 function TeamLogo({ teamName, size = 40, className = "" }: { teamName: string, size?: number, className?: string }) {
   const [hasError, setHasError] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const logoUrl = getTeamLogo(teamName)
   const teamColors = getTeamColors(teamName)
 
   const handleError = () => {
-    console.log(`Failed to load logo for ${teamName}: ${logoUrl}`)
+    console.log(`❌ Failed to load logo for ${teamName}: ${logoUrl}`)
     setHasError(true)
+    setIsLoading(false)
   }
 
   const handleLoad = () => {
-    console.log(`Successfully loaded logo for ${teamName}: ${logoUrl}`)
+    console.log(`✅ Successfully loaded logo for ${teamName}: ${logoUrl}`)
+    setIsLoading(false)
+    setHasError(false)
   }
 
   if (hasError || !logoUrl) {
@@ -444,7 +450,7 @@ function TeamLogo({ teamName, size = 40, className = "" }: { teamName: string, s
           backgroundColor: teamColors.primary,
           fontSize: size * 0.4
         }}
-        title={`${teamName} logo (fallback)`}
+        title={`${teamName} (logo fallback)`}
       >
         {teamInitial}
       </div>
@@ -452,17 +458,27 @@ function TeamLogo({ teamName, size = 40, className = "" }: { teamName: string, s
   }
 
   return (
-    <img
-      src={logoUrl}
-      alt={`${teamName} logo`}
-      width={size}
-      height={size}
-      className={`object-contain ${className}`}
-      onError={handleError}
-      onLoad={handleLoad}
-      loading="lazy"
-      title={teamName}
-    />
+    <div className="relative">
+      {isLoading && (
+        <div 
+          className="absolute inset-0 rounded-full flex items-center justify-center bg-gray-100"
+          style={{ width: size, height: size }}
+        >
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+        </div>
+      )}
+      <img
+        src={logoUrl}
+        alt={`${teamName} logo`}
+        width={size}
+        height={size}
+        className={`object-contain ${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
+        onError={handleError}
+        onLoad={handleLoad}
+        loading="eager"
+        title={teamName}
+      />
+    </div>
   )
 }
 
