@@ -72,102 +72,30 @@ const LADDER_POSITIONS: Record<number, number> = {
   18: 17  // Western Bulldogs - 17th
 }
 
-// Updated team logo URLs - using multiple sources as fallbacks
-const getTeamLogos = (teamName: string) => {
-  const logoSources = {
-    'Adelaide': [
-      'https://resources.afl.com.au/afl/logos/adelaide-crows.svg',
-      'https://squiggle.com.au/static/logos/ade.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/adelaide.svg'
-    ],
-    'Brisbane Lions': [
-      'https://resources.afl.com.au/afl/logos/brisbane-lions.svg',
-      'https://squiggle.com.au/static/logos/brl.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/brisbane.svg'
-    ],
-    'Carlton': [
-      'https://resources.afl.com.au/afl/logos/carlton.svg',
-      'https://squiggle.com.au/static/logos/car.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/carlton.svg'
-    ],
-    'Collingwood': [
-      'https://resources.afl.com.au/afl/logos/collingwood.svg',
-      'https://squiggle.com.au/static/logos/col.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/collingwood.svg'
-    ],
-    'Essendon': [
-      'https://resources.afl.com.au/afl/logos/essendon.svg',
-      'https://squiggle.com.au/static/logos/ess.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/essendon.svg'
-    ],
-    'Fremantle': [
-      'https://resources.afl.com.au/afl/logos/fremantle.svg',
-      'https://squiggle.com.au/static/logos/fre.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/fremantle.svg'
-    ],
-    'Geelong': [
-      'https://resources.afl.com.au/afl/logos/geelong-cats.svg',
-      'https://squiggle.com.au/static/logos/gee.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/geelong.svg'
-    ],
-    'Gold Coast': [
-      'https://resources.afl.com.au/afl/logos/gold-coast-suns.svg',
-      'https://squiggle.com.au/static/logos/gcs.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/goldcoast.svg'
-    ],
-    'GWS': [
-      'https://resources.afl.com.au/afl/logos/greater-western-sydney-giants.svg',
-      'https://squiggle.com.au/static/logos/gws.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/gws.svg'
-    ],
-    'Hawthorn': [
-      'https://resources.afl.com.au/afl/logos/hawthorn.svg',
-      'https://squiggle.com.au/static/logos/haw.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/hawthorn.svg'
-    ],
-    'Melbourne': [
-      'https://resources.afl.com.au/afl/logos/melbourne.svg',
-      'https://squiggle.com.au/static/logos/mel.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/melbourne.svg'
-    ],
-    'North Melbourne': [
-      'https://resources.afl.com.au/afl/logos/north-melbourne.svg',
-      'https://squiggle.com.au/static/logos/nth.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/northmelbourne.svg'
-    ],
-    'Port Adelaide': [
-      'https://resources.afl.com.au/afl/logos/port-adelaide.svg',
-      'https://squiggle.com.au/static/logos/por.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/portadelaide.svg'
-    ],
-    'Richmond': [
-      'https://resources.afl.com.au/afl/logos/richmond.svg',
-      'https://squiggle.com.au/static/logos/ric.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/richmond.svg'
-    ],
-    'St Kilda': [
-      'https://resources.afl.com.au/afl/logos/st-kilda.svg',
-      'https://squiggle.com.au/static/logos/stk.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/stkilda.svg'
-    ],
-    'Sydney': [
-      'https://resources.afl.com.au/afl/logos/sydney-swans.svg',
-      'https://squiggle.com.au/static/logos/syd.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/sydney.svg'
-    ],
-    'West Coast': [
-      'https://resources.afl.com.au/afl/logos/west-coast-eagles.svg',
-      'https://squiggle.com.au/static/logos/wce.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/westcoast.svg'
-    ],
-    'Western Bulldogs': [
-      'https://resources.afl.com.au/afl/logos/western-bulldogs.svg',
-      'https://squiggle.com.au/static/logos/wbd.svg',
-      'https://www.afl.com.au/static-assets/images/clubs/westernbulldogs.svg'
-    ]
+// Correct Squiggle logo URLs (using the WordPress theme directory)
+const getTeamLogo = (teamName: string): string => {
+  const logoMap: Record<string, string> = {
+    'Adelaide': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Crows.png',
+    'Brisbane Lions': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Lions.png',
+    'Carlton': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Blues.png',
+    'Collingwood': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Magpies.png',
+    'Essendon': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Bombers.png',
+    'Fremantle': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Dockers.png',
+    'Geelong': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Cats.png',
+    'Gold Coast': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Suns.png',
+    'GWS': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Giants.png',
+    'Hawthorn': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Hawks.png',
+    'Melbourne': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Demons.png',
+    'North Melbourne': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Kangaroos.png',
+    'Port Adelaide': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Power.png',
+    'Richmond': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Tigers.png',
+    'St Kilda': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Saints.png',
+    'Sydney': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Swans.png',
+    'West Coast': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Eagles.png',
+    'Western Bulldogs': 'https://squiggle.com.au/wp-content/themes/squiggle/assets/images/Bulldogs.png'
   }
   
-  return logoSources[teamName as keyof typeof logoSources] || []
+  return logoMap[teamName] || ''
 }
 
 export function TippingInterface({ 
@@ -489,22 +417,22 @@ export function TippingInterface({
   )
 }
 
-// Enhanced Team Logo Component with multiple fallbacks
+// Enhanced Team Logo Component with correct Squiggle URLs
 function TeamLogo({ teamName, size = 40, className = "" }: { teamName: string, size?: number, className?: string }) {
-  const [currentLogoIndex, setCurrentLogoIndex] = useState(0)
   const [hasError, setHasError] = useState(false)
-  const logoUrls = getTeamLogos(teamName)
+  const logoUrl = getTeamLogo(teamName)
   const teamColors = getTeamColors(teamName)
 
   const handleError = () => {
-    if (currentLogoIndex < logoUrls.length - 1) {
-      setCurrentLogoIndex(prev => prev + 1)
-    } else {
-      setHasError(true)
-    }
+    console.log(`Failed to load logo for ${teamName}: ${logoUrl}`)
+    setHasError(true)
   }
 
-  if (hasError || logoUrls.length === 0) {
+  const handleLoad = () => {
+    console.log(`Successfully loaded logo for ${teamName}: ${logoUrl}`)
+  }
+
+  if (hasError || !logoUrl) {
     // Fallback to colored circle with team initial
     const teamInitial = teamName.charAt(0).toUpperCase()
     return (
@@ -516,6 +444,7 @@ function TeamLogo({ teamName, size = 40, className = "" }: { teamName: string, s
           backgroundColor: teamColors.primary,
           fontSize: size * 0.4
         }}
+        title={`${teamName} logo (fallback)`}
       >
         {teamInitial}
       </div>
@@ -524,13 +453,15 @@ function TeamLogo({ teamName, size = 40, className = "" }: { teamName: string, s
 
   return (
     <img
-      src={logoUrls[currentLogoIndex]}
+      src={logoUrl}
       alt={`${teamName} logo`}
       width={size}
       height={size}
       className={`object-contain ${className}`}
       onError={handleError}
+      onLoad={handleLoad}
       loading="lazy"
+      title={teamName}
     />
   )
 }
@@ -625,9 +556,9 @@ function GameTippingCard({
       {/* Teams Display */}
       <div className="grid grid-cols-2 gap-6 mb-6">
         {/* Home Team */}
-        <div className={`p-4 rounded-lg border-2 ${
+        <div className={`p-4 rounded-lg border-2 transition-all ${
           userTip?.predictedWinner === game.homeTeamId
-            ? 'border-blue-500 bg-blue-50'
+            ? 'border-blue-500 bg-blue-50 shadow-md'
             : 'border-gray-200'
         }`}>
           <div className="space-y-3">
@@ -672,9 +603,9 @@ function GameTippingCard({
         </div>
 
         {/* Away Team */}
-        <div className={`p-4 rounded-lg border-2 ${
+        <div className={`p-4 rounded-lg border-2 transition-all ${
           userTip?.predictedWinner === game.awayTeamId
-            ? 'border-blue-500 bg-blue-50'
+            ? 'border-blue-500 bg-blue-50 shadow-md'
             : 'border-gray-200'
         }`}>
           <div className="space-y-3">
