@@ -271,7 +271,7 @@ export function TippingInterface({
     <div className="w-full bg-gray-50 min-h-screen">
       {/* DESKTOP TOP BANNER ONLY */}
       <div className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Left: Just the logo */}
             <div className="flex items-center gap-2">
@@ -416,7 +416,7 @@ export function TippingInterface({
       </div>
 
       {/* MAIN CONTAINER */}
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-4xl mx-auto p-4">
         {/* GAMES CONTENT - Direct display, no tabs */}
         <div className="space-y-4">
           {message && (
@@ -454,10 +454,11 @@ export function TippingInterface({
         </div>
       </div>
 
-      {/* ADMIN TOGGLE - Bottom of page, only if admin */}
+      {/* ADMIN TOGGLE - Bottom right, only if admin */}
       {isAdmin && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <div className="flex items-center gap-2 p-2 bg-white rounded-lg shadow-lg border border-gray-200">
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="flex items-center gap-2 p-3 bg-white rounded-lg shadow-lg border border-gray-200">
+            <span className="text-xs text-gray-600 mr-2">View:</span>
             <Button
               onClick={() => {}} // Controlled by UserButton menu
               variant={viewMode === 'user' ? 'default' : 'ghost'}
