@@ -331,9 +331,24 @@ export async function POST(request: Request) {
           })
         }
 
+        // Fetch all games for this round (including completed ones) to return
+        const allRoundGames = await prisma.game.findMany({
+          where: {
+            season: seasonNum,
+            round: roundNum
+          },
+          orderBy: [
+            { date: 'asc' }
+          ]
+        })
+
+        console.log(`✅ Completed ${roundGames.length} games in Round ${roundNum}`)
+
         return NextResponse.json({
-          message: `Completed all games in Round ${roundNum}`,
-          completedCount: roundGames.length
+          message: `Completed ${roundGames.length} games in Round ${roundNum}`,
+          games: allRoundGames,
+          completedCount: roundGames.length,
+          currentRound: mockGameService.getCurrentRound(seasonNum)
         })
 
       case 'reset_season':
