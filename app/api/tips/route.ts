@@ -79,27 +79,13 @@ export async function POST(request: Request) {
               where: { id: gameId }
             })
             if (!gameExists) {
-              console.log(`Game ${gameId} doesn't exist in database, creating it...`)
-              
-              // For testing mode, create a placeholder game
-              // In production, games should be pre-loaded from Squiggle API
-              await prisma.game.create({
-                data: {
-                  id: gameId,
-                  squiggleId: `test_${gameId.slice(-6)}`, // Fixed: String instead of number
-                  round: 1, // Default for testing
-                  year: 2025,
-                  season: 2025,
-                  homeTeam: 'Test Home Team',
-                  awayTeam: 'Test Away Team',
-                  homeTeamId: 1,
-                  awayTeamId: 2,
-                  venue: 'Test Venue',
-                  date: new Date(),
-                  isComplete: false
-                }
+              // FIXED: Don't create placeholder games, return error instead
+              console.error(`❌ Game ${gameId} doesn't exist in database. Cannot save tip.`)
+              errors.push({ 
+                gameId, 
+                error: 'Game not found. Please refresh the page to load the latest fixtures.' 
               })
-              console.log(`Created placeholder game ${gameId}`)
+              continue
             }
             // Now save the tip
             const savedTip = await prisma.tip.upsert({
@@ -332,9 +318,9 @@ async function addResultsToTips(tips: any[], competitionId: string) {
       margin: tip.margin,
       confidence: tip.confidence,
       points: 0,
-      isCorrect: null as boolean | null, // Fixed: Explicit type
-      marginRank: null as number | null, // Fixed: Explicit type
-      marginAccuracy: null as number | null, // Fixed: Explicit type
+      isCorrect: null as boolean | null,
+      marginRank: null as number | null,
+      marginAccuracy: null as number | null,
       createdAt: tip.createdAt,
       updatedAt: tip.updatedAt
     }
@@ -413,7 +399,7 @@ async function calculateMarginRankForGame(gameId: string, competitionId: string,
 
 async function calculateResultsForSavedTips(savedTips: any[], competitionId: string) {
   try {
-    // Get unique game IDs from saved tips - Fixed: Convert Set to Array
+    // Get unique game IDs from saved tips
     const gameIdsSet = new Set(savedTips.map(tip => tip.gameId))
     const gameIds = Array.from(gameIdsSet)
     
