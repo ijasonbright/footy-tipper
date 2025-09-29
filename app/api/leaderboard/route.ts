@@ -62,8 +62,8 @@ export async function GET(
     if (round) {
       // Return round-specific leaderboard
       const roundNum = parseInt(round)
-      const roundSummary = getRoundSummary(tips, roundNum, settings)
-      const roundLeaderboard = calculateLeaderboard(tips, settings)
+      const roundSummary = getRoundSummary(tips as any, roundNum, settings)
+      const roundLeaderboard = calculateLeaderboard(tips as any, settings)
 
       return NextResponse.json({
         round: roundNum,
@@ -73,13 +73,16 @@ export async function GET(
       })
     } else {
       // Return overall leaderboard
-      const leaderboard = calculateLeaderboard(tips, settings)
+      const leaderboard = calculateLeaderboard(tips as any, settings)
       
-      // Get round summaries for all completed rounds
-      const completedRounds = [...new Set(tips.map(tip => tip.game.round))].sort((a, b) => a - b)
+      // Get round summaries for all completed rounds (fix Set iteration)
+      const roundsSet = new Set<number>()
+      tips.forEach(tip => roundsSet.add(tip.game.round))
+      const completedRounds = Array.from(roundsSet).sort((a, b) => a - b)
+      
       const roundSummaries = completedRounds.map(roundNum => ({
         round: roundNum,
-        ...getRoundSummary(tips, roundNum, settings)
+        ...getRoundSummary(tips as any, roundNum, settings)
       }))
 
       return NextResponse.json({

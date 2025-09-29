@@ -31,10 +31,10 @@ export const DEFAULT_COMPETITION_SETTINGS: CompetitionSettings = {
   confidenceMultiplier: 1,
 }
 
-// Extended tip type with game and user data
+// Flexible tip type that works with partial user data
 export type TipWithGameAndUser = Tip & {
   game: Game
-  user: User
+  user: Pick<User, 'id' | 'username' | 'imageUrl'> | User
 }
 
 // Calculate points for a single tip
@@ -278,8 +278,15 @@ export function getRoundSummary(
     userScores.set(userId, score + bonus)
   })
 
-  const totalGames = [...new Set(roundTips.map(tip => tip.gameId))].length
-  const completedGames = [...new Set(completedTips.map(tip => tip.gameId))].length
+  // Fix Set iteration - use Array.from instead of spread
+  const gameIdsSet = new Set<string>()
+  roundTips.forEach(tip => gameIdsSet.add(tip.gameId))
+  const totalGames = Array.from(gameIdsSet).length
+  
+  const completedGameIdsSet = new Set<string>()
+  completedTips.forEach(tip => completedGameIdsSet.add(tip.gameId))
+  const completedGames = Array.from(completedGameIdsSet).length
+  
   const participants = userScores.size
   
   const scores = Array.from(userScores.values())
