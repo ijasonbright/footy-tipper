@@ -15,8 +15,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const round = searchParams.get('round')
     const season = searchParams.get('season') || '2025'
-    const source = searchParams.get('source') || 'mock' // 'mock' or 'live'
-    const action = searchParams.get('action') // For testing actions
+    const source = searchParams.get('source') || 'mock'
+    const action = searchParams.get('action')
 
     let games: any[] = []
     let currentRound = 1
@@ -38,10 +38,14 @@ export async function GET(request: Request) {
         switch (action) {
           case 'complete':
             const completedGames = mockGameService.completeGames(seasonNum, roundNum, 3)
-            await syncMockGamesToDatabase(completedGames) // ✅ Sync to DB
+            await syncMockGamesToDatabase(completedGames)
+            // Fetch from DB to get real IDs
+            const dbCompletedGames = await prisma.game.findMany({
+              where: { season: seasonNum, round: roundNum }
+            })
             return NextResponse.json({
               message: `Completed 3 games in Round ${roundNum}`,
-              games: completedGames,
+              games: dbCompletedGames,
               currentRound: mockGameService.getCurrentRound(seasonNum),
               source: 'mock'
             })
@@ -49,7 +53,7 @@ export async function GET(request: Request) {
           case 'reset':
             mockGameService.resetSeason(seasonNum)
             const resetGames = mockGameService.getSeasonGames(seasonNum)
-            await syncMockGamesToDatabase(resetGames) // ✅ Sync to DB
+            await syncMockGamesToDatabase(resetGames)
             return NextResponse.json({
               message: `Reset all games for ${season} season`,
               currentRound: 1,
@@ -58,59 +62,50 @@ export async function GET(request: Request) {
           
           case 'simulate':
             const simulatedGames = mockGameService.simulateLiveRound(seasonNum, roundNum)
-            await syncMockGamesToDatabase(simulatedGames) // ✅ Sync to DB
+            await syncMockGamesToDatabase(simulatedGames)
+            const dbSimulatedGames = await prisma.game.findMany({
+              where: { season: seasonNum, round: roundNum }
+            })
             return NextResponse.json({
               message: `Simulated live scoring for Round ${roundNum}`,
-              games: simulatedGames,
+              games: dbSimulatedGames,
               currentRound: mockGameService.getCurrentRound(seasonNum),
               source: 'mock'
             })
         }
       }
 
-      // Get mock games
+      // Get mock games and sync to database
       currentRound = mockGameService.getCurrentRound(parseInt(season))
       
-      if (round) {
-        games = mockGameService.getRoundGames(parseInt(season), parseInt(round))
-      } else {
-        games = mockGameService.getRoundGames(parseInt(season), currentRound)
-      }
+      const targetRound = round ? parseInt(round) : currentRound
+      const mockGames = mockGameService.getRoundGames(parseInt(season), targetRound)
+      
+      // Sync mock games to database
+      await syncMockGamesToDatabase(mockGames)
 
-      // Convert mock games to API format with CORRECT team data
-      games = games.map(game => ({
-        id: game.id,
-        squiggleId: game.squiggleId,
-        round: game.round,
-        season: game.season,
-        homeTeam: game.homeTeam,
-        awayTeam: game.awayTeam,
-        homeTeamId: game.homeTeamId,
-        awayTeamId: game.awayTeamId,
-        venue: game.venue,
-        date: game.date,
-        homeScore: game.homeScore,
-        awayScore: game.awayScore,
-        winner: game.winner, // ✅ This is the actual team ID (1-18)
-        isComplete: game.isComplete,
-        createdAt: game.createdAt,
-        updatedAt: game.updatedAt
-      }))
+      // ✅ CRITICAL FIX: Fetch games FROM DATABASE to get real IDs
+      games = await prisma.game.findMany({
+        where: {
+          season: parseInt(season),
+          round: targetRound
+        },
+        orderBy: [
+          { date: 'asc' }
+        ]
+      })
 
-      // Sync to database with correct team data
-      await syncMockGamesToDatabase(games)
+      console.log(`✅ Returning ${games.length} games from database with real IDs`)
 
     } else {
       console.log('🏈 Using live Squiggle API data')
       
       try {
-        // Get live data from Squiggle API
         currentRound = await squiggleAPI.getCurrentRound(parseInt(season))
         
         const targetRound = round ? parseInt(round) : currentRound
         const squiggleGames = await squiggleAPI.getGames(parseInt(season), targetRound)
         
-        // Convert Squiggle format to our database format
         games = squiggleGames.map(game => ({
           id: `squiggle-${game.id}`,
           squiggleId: game.id.toString(),
@@ -130,13 +125,11 @@ export async function GET(request: Request) {
           updatedAt: new Date()
         }))
 
-        // Sync games to database for persistent storage
         await syncGamesToDatabase(games)
         
       } catch (error) {
         console.error('Error fetching from Squiggle API:', error)
         
-        // Fallback to database games if API fails
         console.log('📦 Falling back to cached database games')
         const dbGames = await prisma.game.findMany({
           where: {
@@ -150,7 +143,7 @@ export async function GET(request: Request) {
         })
 
         games = dbGames
-        currentRound = 1 // Default if we can't determine current round
+        currentRound = 1
       }
     }
 
@@ -170,7 +163,6 @@ export async function GET(request: Request) {
   }
 }
 
-// Sync MOCK games to database with correct team data
 async function syncMockGamesToDatabase(games: any[]) {
   try {
     for (const game of games) {
@@ -179,14 +171,13 @@ async function syncMockGamesToDatabase(games: any[]) {
           squiggleId: game.squiggleId
         },
         update: {
-          // Update with actual team data from mock service
           homeTeam: game.homeTeam,
           awayTeam: game.awayTeam,
           homeTeamId: game.homeTeamId,
           awayTeamId: game.awayTeamId,
           homeScore: game.homeScore,
           awayScore: game.awayScore,
-          winner: game.winner, // ✅ This is the actual winning team ID (1-18), not 1 or 2
+          winner: game.winner,
           isComplete: game.isComplete,
           updatedAt: new Date()
         },
@@ -202,18 +193,17 @@ async function syncMockGamesToDatabase(games: any[]) {
           date: game.date,
           homeScore: game.homeScore,
           awayScore: game.awayScore,
-          winner: game.winner, // ✅ Actual winning team ID
+          winner: game.winner,
           isComplete: game.isComplete
         }
       })
     }
-    console.log(`✅ Synced ${games.length} mock games to database with correct winner team IDs`)
+    console.log(`✅ Synced ${games.length} mock games to database`)
   } catch (error) {
     console.error('Error syncing mock games to database:', error)
   }
 }
 
-// Sync games from Squiggle API to database
 async function syncGamesToDatabase(games: any[]) {
   try {
     for (const game of games) {
@@ -251,7 +241,6 @@ async function syncGamesToDatabase(games: any[]) {
   }
 }
 
-// POST endpoint for admin actions (only works with mock data)
 export async function POST(request: Request) {
   try {
     const { userId } = await auth()
@@ -263,7 +252,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { action, season = 2025, round, gameId, source = 'mock', competitionId } = body
 
-    // Only allow admin actions for mock data
     if (source !== 'mock') {
       return NextResponse.json({ 
         error: 'Admin actions only available for mock data. Switch to testing mode first.' 
@@ -273,7 +261,6 @@ export async function POST(request: Request) {
     const seasonNum = parseInt(season)
     const roundNum = round ? parseInt(round) : mockGameService.getCurrentRound(seasonNum)
 
-    // Initialize mock data if needed
     if (!mockGameService.getSeasonGames(seasonNum).length) {
       initializeMockData()
     }
@@ -284,73 +271,86 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Game ID required' }, { status: 400 })
         }
         
-        const games = mockGameService.getSeasonGames(seasonNum)
-        const gameIndex = games.findIndex(g => g.id === gameId)
-        if (gameIndex === -1) {
+        // Find game in database by ID
+        const dbGame = await prisma.game.findUnique({
+          where: { id: gameId }
+        })
+
+        if (!dbGame) {
           return NextResponse.json({ error: 'Game not found' }, { status: 404 })
         }
-        
-        // Generate realistic score and complete the game
-        const homeScore = Math.floor(Math.random() * 60) + 60 // 60-120 points
-        const awayScore = Math.floor(Math.random() * 60) + 60
-        
-        games[gameIndex] = {
-          ...games[gameIndex],
-          homeScore,
-          awayScore,
-          winner: homeScore > awayScore ? games[gameIndex].homeTeamId : games[gameIndex].awayTeamId, // ✅ Actual team ID
-          isComplete: true,
-          updatedAt: new Date()
-        }
 
-        // ✅ Sync the updated game to database with correct winner
-        await syncMockGamesToDatabase([games[gameIndex]])
-        
-        console.log(`✅ Completed game: ${games[gameIndex].homeTeam} (ID:${games[gameIndex].homeTeamId}) ${homeScore} - ${awayScore} ${games[gameIndex].awayTeam} (ID:${games[gameIndex].awayTeamId})`)
-        console.log(`✅ Winner: Team ID ${games[gameIndex].winner}`)
+        // Generate scores
+        const homeScore = Math.floor(Math.random() * 60) + 60
+        const awayScore = Math.floor(Math.random() * 60) + 60
+        const winner = homeScore > awayScore ? dbGame.homeTeamId : dbGame.awayTeamId
+
+        // Update in database
+        const updatedGame = await prisma.game.update({
+          where: { id: gameId },
+          data: {
+            homeScore,
+            awayScore,
+            winner,
+            isComplete: true,
+            updatedAt: new Date()
+          }
+        })
+
+        console.log(`✅ Completed game: ${updatedGame.homeTeam} ${homeScore} - ${awayScore} ${updatedGame.awayTeam}`)
         
         return NextResponse.json({
-          message: `Completed game: ${games[gameIndex].homeTeam} ${homeScore} - ${awayScore} ${games[gameIndex].awayTeam}`,
-          game: games[gameIndex]
+          message: `Completed game: ${updatedGame.homeTeam} ${homeScore} - ${awayScore} ${updatedGame.awayTeam}`,
+          game: updatedGame
         })
 
       case 'complete_round':
-        const completedRound = mockGameService.completeGames(seasonNum, roundNum, 9)
-        await syncMockGamesToDatabase(completedRound) // ✅ Sync to DB
+        // Get all incomplete games for this round from database
+        const roundGames = await prisma.game.findMany({
+          where: {
+            season: seasonNum,
+            round: roundNum,
+            isComplete: false
+          }
+        })
+
+        // Complete each game
+        for (const game of roundGames) {
+          const hScore = Math.floor(Math.random() * 60) + 60
+          const aScore = Math.floor(Math.random() * 60) + 60
+          
+          await prisma.game.update({
+            where: { id: game.id },
+            data: {
+              homeScore: hScore,
+              awayScore: aScore,
+              winner: hScore > aScore ? game.homeTeamId : game.awayTeamId,
+              isComplete: true,
+              updatedAt: new Date()
+            }
+          })
+        }
+
         return NextResponse.json({
           message: `Completed all games in Round ${roundNum}`,
-          games: completedRound,
-          currentRound: mockGameService.getCurrentRound(seasonNum)
+          completedCount: roundGames.length
         })
 
       case 'reset_season':
-        mockGameService.resetSeason(seasonNum)
-        const resetGames = mockGameService.getSeasonGames(seasonNum)
-        await syncMockGamesToDatabase(resetGames) // ✅ Sync to DB
+        // Reset all games in database
+        await prisma.game.updateMany({
+          where: { season: seasonNum },
+          data: {
+            homeScore: null,
+            awayScore: null,
+            winner: null,
+            isComplete: false
+          }
+        })
+
         return NextResponse.json({
           message: `Reset all games for ${season} season`,
           currentRound: 1
-        })
-
-      case 'advance_round':
-        // Complete current round and advance to next
-        const advancedGames = mockGameService.completeGames(seasonNum, roundNum, 9)
-        await syncMockGamesToDatabase(advancedGames) // ✅ Sync to DB
-        const nextRound = mockGameService.getCurrentRound(seasonNum)
-        return NextResponse.json({
-          message: `Completed Round ${roundNum}. Advanced to Round ${nextRound}`,
-          currentRound: nextRound,
-          games: mockGameService.getRoundGames(seasonNum, nextRound)
-        })
-
-      case 'simulate_live':
-        // Simulate one game finishing during "live" play
-        const simulatedGames = mockGameService.simulateLiveRound(seasonNum, roundNum)
-        await syncMockGamesToDatabase(simulatedGames) // ✅ Sync to DB
-        return NextResponse.json({
-          message: `Simulated live result in Round ${roundNum}`,
-          games: simulatedGames,
-          currentRound: mockGameService.getCurrentRound(seasonNum)
         })
 
       default:
