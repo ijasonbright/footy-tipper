@@ -73,25 +73,28 @@ export async function GET(request: Request) {
         games = mockGameService.getRoundGames(parseInt(season), currentRound)
       }
 
-      // Convert mock games to API format
+      // Convert mock games to API format with CORRECT team data
       games = games.map(game => ({
         id: game.id,
         squiggleId: game.squiggleId,
         round: game.round,
         season: game.season,
-        homeTeam: game.homeTeam,
-        awayTeam: game.awayTeam,
-        homeTeamId: game.homeTeamId,
-        awayTeamId: game.awayTeamId,
+        homeTeam: game.homeTeam, // ✅ Use actual team name from mock service
+        awayTeam: game.awayTeam, // ✅ Use actual team name from mock service
+        homeTeamId: game.homeTeamId, // ✅ Use actual team ID from mock service
+        awayTeamId: game.awayTeamId, // ✅ Use actual team ID from mock service
         venue: game.venue,
         date: game.date,
         homeScore: game.homeScore,
         awayScore: game.awayScore,
-        winner: game.winner,
+        winner: game.winner, // ✅ Winner is already the correct team ID
         isComplete: game.isComplete,
         createdAt: game.createdAt,
         updatedAt: game.updatedAt
       }))
+
+      // Sync to database with correct team data
+      await syncMockGamesToDatabase(games)
 
     } else {
       console.log('🏈 Using live Squiggle API data')
@@ -160,6 +163,49 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error in games API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// Sync MOCK games to database with correct team data
+async function syncMockGamesToDatabase(games: any[]) {
+  try {
+    for (const game of games) {
+      await prisma.game.upsert({
+        where: {
+          squiggleId: game.squiggleId
+        },
+        update: {
+          // Update with actual team data from mock service
+          homeTeam: game.homeTeam,
+          awayTeam: game.awayTeam,
+          homeTeamId: game.homeTeamId,
+          awayTeamId: game.awayTeamId,
+          homeScore: game.homeScore,
+          awayScore: game.awayScore,
+          winner: game.winner,
+          isComplete: game.isComplete,
+          updatedAt: new Date()
+        },
+        create: {
+          squiggleId: game.squiggleId,
+          round: game.round,
+          season: game.season,
+          homeTeam: game.homeTeam, // ✅ Actual team name
+          awayTeam: game.awayTeam, // ✅ Actual team name
+          homeTeamId: game.homeTeamId, // ✅ Actual team ID
+          awayTeamId: game.awayTeamId, // ✅ Actual team ID
+          venue: game.venue,
+          date: game.date,
+          homeScore: game.homeScore,
+          awayScore: game.awayScore,
+          winner: game.winner, // ✅ Actual winning team ID
+          isComplete: game.isComplete
+        }
+      })
+    }
+    console.log(`✅ Synced ${games.length} mock games to database with correct team data`)
+  } catch (error) {
+    console.error('Error syncing mock games to database:', error)
   }
 }
 
@@ -252,6 +298,9 @@ export async function POST(request: Request) {
           isComplete: true,
           updatedAt: new Date()
         }
+
+        // Sync the updated game to database
+        await syncMockGamesToDatabase([games[gameIndex]])
         
         return NextResponse.json({
           message: `Completed game: ${games[gameIndex].homeTeam} ${homeScore} - ${awayScore} ${games[gameIndex].awayTeam}`,
@@ -259,15 +308,18 @@ export async function POST(request: Request) {
         })
 
       case 'complete_round':
-        mockGameService.completeGames(seasonNum, roundNum, 9)
+        const completedRound = mockGameService.completeGames(seasonNum, roundNum, 9)
+        await syncMockGamesToDatabase(completedRound)
         return NextResponse.json({
           message: `Completed all games in Round ${roundNum}`,
-          games: mockGameService.getRoundGames(seasonNum, roundNum),
+          games: completedRound,
           currentRound: mockGameService.getCurrentRound(seasonNum)
         })
 
       case 'reset_season':
         mockGameService.resetSeason(seasonNum)
+        const resetGames = mockGameService.getSeasonGames(seasonNum)
+        await syncMockGamesToDatabase(resetGames)
         return NextResponse.json({
           message: `Reset all games for ${season} season`,
           currentRound: 1
@@ -275,7 +327,8 @@ export async function POST(request: Request) {
 
       case 'advance_round':
         // Complete current round and advance to next
-        mockGameService.completeGames(seasonNum, roundNum, 9)
+        const advancedGames = mockGameService.completeGames(seasonNum, roundNum, 9)
+        await syncMockGamesToDatabase(advancedGames)
         const nextRound = mockGameService.getCurrentRound(seasonNum)
         return NextResponse.json({
           message: `Completed Round ${roundNum}. Advanced to Round ${nextRound}`,
@@ -286,6 +339,7 @@ export async function POST(request: Request) {
       case 'simulate_live':
         // Simulate one game finishing during "live" play
         const simulatedGames = mockGameService.simulateLiveRound(seasonNum, roundNum)
+        await syncMockGamesToDatabase(simulatedGames)
         return NextResponse.json({
           message: `Simulated live result in Round ${roundNum}`,
           games: simulatedGames,
