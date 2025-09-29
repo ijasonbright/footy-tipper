@@ -9,7 +9,7 @@ export async function recalculateScoresForCompletedGames() {
     })
 
     for (const competition of competitions) {
-      await recalculateCompetitionScores(competition.id, competition.settings as CompetitionSettings)
+      await recalculateCompetitionScores(competition.id, competition.settings as unknown as CompetitionSettings)
     }
 
     console.log('Successfully recalculated scores for all competitions')
@@ -128,7 +128,7 @@ export async function onGameCompleted(gameId: string) {
 
     // Recalculate scores for each competition
     for (const competition of competitions) {
-      await recalculateCompetitionScores(competition.id, competition.settings as CompetitionSettings)
+      await recalculateCompetitionScores(competition.id, competition.settings as unknown as CompetitionSettings)
     }
 
     console.log(`Recalculated scores for game ${gameId}`)
