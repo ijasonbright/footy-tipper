@@ -4,12 +4,12 @@ import { calculateLeaderboard, getRoundSummary, DEFAULT_COMPETITION_SETTINGS, ty
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: competitionId } = await params
     const { searchParams } = new URL(request.url)
     const round = searchParams.get('round')
-    const competitionId = params.id
 
     // Get competition settings
     const competition = await prisma.competition.findUnique({
@@ -108,10 +108,10 @@ export async function GET(
 // Update competition settings
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const competitionId = params.id
+    const { id: competitionId } = await params
     const body = await request.json()
     const { settings } = body
 
