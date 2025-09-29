@@ -33,12 +33,16 @@ model Competition {
   name        String
   description String?
   code        String   @unique
-  settings    Json     @default("{}")
-  season      Int      @default(2025) // Updated to 2025
+  settings    Json     @default("{}") // Enhanced scoring settings stored here
+  season      Int      @default(2025)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdBy   String
+  
+  // NEW: Additional competition metadata
+  maxMembers  Int?     // Optional member limit
+  isPublic    Boolean  @default(false) // Public vs private competitions
   
   // Relationships
   users       CompetitionUser[]
@@ -55,11 +59,18 @@ model CompetitionUser {
   joinedAt      DateTime    @default(now())
   totalPoints   Int         @default(0)
   
+  // NEW: Additional user stats for quick access
+  correctTips   Int         @default(0)
+  totalTips     Int         @default(0)
+  currentRank   Int?        // Current leaderboard position
+  bestRank      Int?        // Best position achieved
+  
   // Relationships
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
   
   @@unique([userId, competitionId])
+  @@index([competitionId, totalPoints])
   @@map("competition_users")
 }
 
@@ -67,7 +78,7 @@ model Game {
   id              String    @id @default(cuid())
   squiggleId      String?   @unique // Made optional for testing games
   round           Int
-  season          Int       @default(2025) // Updated to 2025 
+  season          Int       @default(2025)
   year            Int       @default(2025) // Added for compatibility with your API
   homeTeam        String
   awayTeam        String
@@ -78,7 +89,13 @@ model Game {
   homeScore       Int?
   awayScore       Int?
   winner          Int?      // team ID of winner
+  margin          Int?      // NEW: Actual margin for easy access
   isComplete      Boolean   @default(false)
+  
+  // NEW: Game metadata for better tracking
+  startTime       DateTime? // Actual game start time
+  completedAt     DateTime? // When game was marked complete
+  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
@@ -87,6 +104,7 @@ model Game {
   
   @@index([year, round])
   @@index([isComplete])
+  @@index([date])
   @@map("games")
 }
 
@@ -100,10 +118,18 @@ model Tip {
   confidence       Int?     // 1-9 ranking
   points           Int      @default(0)
   
-  // NEW FIELDS FOR ENHANCED FUNCTIONALITY
+  // ENHANCED TRACKING FIELDS
   isCorrect        Boolean? // null = game not complete, true/false = result
   marginRank       Int?     // Position in margin accuracy ranking (1 = most accurate)
   marginAccuracy   Int?     // How many points off the actual margin
+  confidenceBonus  Int      @default(0) // Bonus points from confidence
+  marginBonus      Int      @default(0) // Bonus points from margin accuracy
+  allCorrectBonus  Int      @default(0) // Bonus from getting all tips in round correct
+  
+  // NEW: Submission tracking
+  submittedAt      DateTime? // When tip was first submitted
+  lastModified     DateTime? // When tip was last changed
+  isLocked         Boolean   @default(false) // Locked after deadline
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -117,6 +143,7 @@ model Tip {
   @@index([competitionId])
   @@index([gameId])
   @@index([userId])
+  @@index([competitionId, points])
   @@map("tips")
 }
 
@@ -132,7 +159,7 @@ model Team {
   @@map("teams")
 }
 
-// Optional: Store leaderboard snapshots for historical tracking
+// Enhanced leaderboard snapshots for historical tracking
 model LeaderboardSnapshot {
   id            String   @id @default(cuid())
   competitionId String
@@ -142,9 +169,33 @@ model LeaderboardSnapshot {
   totalPoints   Int
   correctTips   Int
   totalTips     Int
+  percentage    Float    @default(0)
+  marginDiff    Int      @default(0) // Total margin difference (tiebreaker)
+  
+  // NEW: Round-specific stats
+  roundPoints   Int      @default(0)
+  roundCorrect  Int      @default(0)
+  roundTotal    Int      @default(0)
+  allCorrectBonus Boolean @default(false)
+  
   createdAt     DateTime @default(now())
   
   @@unique([competitionId, round, userId])
   @@index([competitionId, round])
+  @@index([competitionId, round, rank])
   @@map("leaderboard_snapshots")
+}
+
+// NEW: Store competition activity and notifications
+model CompetitionActivity {
+  id            String   @id @default(cuid())
+  competitionId String
+  userId        String?  // null for system activities
+  type          String   // 'tip_submitted', 'round_complete', 'leaderboard_update', etc.
+  description   String
+  metadata      Json?    // Additional data specific to activity type
+  createdAt     DateTime @default(now())
+  
+  @@index([competitionId, createdAt])
+  @@map("competition_activities")
 }

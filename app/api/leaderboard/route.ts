@@ -1,106 +1,52 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { calculateTipPoints } from '@/lib/scoring'
+import { calculateLeaderboard, getRoundSummary, DEFAULT_COMPETITION_SETTINGS, type CompetitionSettings } from '@/lib/enhanced-scoring-system'
 
-interface LeaderboardEntry {
-  userId: string
-  username: string
-  imageUrl?: string
-  totalPoints: number
-  correctTips: number
-  totalTips: number
-  rank: number
-  change?: number
-}
-
-export async function GET(request: Request) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { userId } = await auth()
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const { searchParams } = new URL(request.url)
+    const round = searchParams.get('round')
+    const competitionId = params.id
 
-    const url = new URL(request.url)
-    const competitionId = url.searchParams.get('competitionId')
-    const round = parseInt(url.searchParams.get('round') || '0')
-
-    if (!competitionId) {
-      return NextResponse.json({ error: 'Competition ID required' }, { status: 400 })
-    }
-
-    // Verify user is member of competition
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const membership = await prisma.competitionUser.findUnique({
-      where: {
-        userId_competitionId: {
-          userId: user.id,
-          competitionId
-        }
-      }
-    })
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Not a member of this competition' }, { status: 403 })
-    }
-
-    // Get leaderboard data
-    let leaderboard: LeaderboardEntry[]
-    
-    if (round > 0) {
-      // Get leaderboard with position changes
-      leaderboard = await getLeaderboardWithChanges(competitionId, round)
-    } else {
-      // Get current overall leaderboard
-      leaderboard = await generateLeaderboard(competitionId)
-    }
-
-    return NextResponse.json({ leaderboard })
-  } catch (error) {
-    console.error('Error getting leaderboard:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-async function generateLeaderboard(competitionId: string, upToRound?: number): Promise<LeaderboardEntry[]> {
-  try {
-    // Get all competition members
-    const members = await prisma.competitionUser.findMany({
-      where: { competitionId },
+    // Get competition settings
+    const competition = await prisma.competition.findUnique({
+      where: { id: competitionId },
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            imageUrl: true
+        users: {
+          include: {
+            user: true
           }
         }
       }
     })
 
-    // Get all tips for the competition
-    let tipFilters: any = {
+    if (!competition) {
+      return NextResponse.json({ error: 'Competition not found' }, { status: 404 })
+    }
+
+    // Parse competition settings
+    const settings: CompetitionSettings = {
+      ...DEFAULT_COMPETITION_SETTINGS,
+      ...(competition.settings as any || {})
+    }
+
+    // Fetch tips with games and users
+    const whereClause: any = {
       competitionId,
       game: {
-        isComplete: true // Only count completed games
+        isComplete: true
       }
     }
 
-    // Filter by round if specified
-    if (upToRound && upToRound > 0) {
-      tipFilters.game.round = { lte: upToRound }
+    if (round) {
+      whereClause.game.round = parseInt(round)
     }
 
-    const allTips = await prisma.tip.findMany({
-      where: tipFilters,
+    const tips = await prisma.tip.findMany({
+      where: whereClause,
       include: {
         game: true,
         user: {
@@ -113,114 +59,131 @@ async function generateLeaderboard(competitionId: string, upToRound?: number): P
       }
     })
 
-    // Calculate standings for each user
-    const userStandings = new Map<string, {
-      userId: string
-      username: string
-      imageUrl?: string
-      totalPoints: number
-      correctTips: number
-      totalTips: number
-    }>()
+    if (round) {
+      // Return round-specific leaderboard
+      const roundNum = parseInt(round)
+      const roundSummary = getRoundSummary(tips, roundNum, settings)
+      const roundLeaderboard = calculateLeaderboard(tips, settings)
 
-    // Initialize all members
-    members.forEach(member => {
-      userStandings.set(member.userId, {
-        userId: member.userId,
-        username: member.user.username,
-        imageUrl: member.user.imageUrl || undefined,
-        totalPoints: 0,
-        correctTips: 0,
-        totalTips: 0
+      return NextResponse.json({
+        round: roundNum,
+        summary: roundSummary,
+        leaderboard: roundLeaderboard,
+        settings
       })
-    })
-
-    // Calculate points and stats
-    allTips.forEach(tip => {
-      const standing = userStandings.get(tip.userId)
-      if (!standing) return
-
-      standing.totalTips += 1
-
-      // Calculate points for this tip
-      let points = 0
-      try {
-        points = calculateTipPoints(tip, tip.game)
-      } catch (error) {
-        console.error('Error calculating points for tip:', error)
-        // Fallback: 1 point for correct prediction
-        if (tip.game.isComplete && tip.game.winner && tip.predictedWinner === tip.game.winner) {
-          points = 1
-        }
-      }
+    } else {
+      // Return overall leaderboard
+      const leaderboard = calculateLeaderboard(tips, settings)
       
-      standing.totalPoints += points
+      // Get round summaries for all completed rounds
+      const completedRounds = [...new Set(tips.map(tip => tip.game.round))].sort((a, b) => a - b)
+      const roundSummaries = completedRounds.map(roundNum => ({
+        round: roundNum,
+        ...getRoundSummary(tips, roundNum, settings)
+      }))
 
-      // Count correct tips (any points = correct)
-      if (points > 0) {
-        standing.correctTips += 1
-      }
-    })
-
-    // Convert to array and sort
-    const standings = Array.from(userStandings.values())
-      .sort((a, b) => {
-        // Sort by total points (desc), then by correct tips (desc), then by username (asc)
-        if (b.totalPoints !== a.totalPoints) {
-          return b.totalPoints - a.totalPoints
+      return NextResponse.json({
+        leaderboard,
+        roundSummaries,
+        settings,
+        competition: {
+          id: competition.id,
+          name: competition.name,
+          memberCount: competition.users.length
         }
-        if (b.correctTips !== a.correctTips) {
-          return b.correctTips - a.correctTips
-        }
-        return a.username.localeCompare(b.username)
       })
-
-    // Add rankings and position changes
-    const leaderboard: LeaderboardEntry[] = standings.map((standing, index) => ({
-      ...standing,
-      rank: index + 1,
-      change: undefined // Will be calculated in getLeaderboardWithChanges if needed
-    }))
-
-    return leaderboard
+    }
   } catch (error) {
-    console.error('Error generating leaderboard:', error)
-    throw error
+    console.error('Error calculating leaderboard:', error)
+    return NextResponse.json(
+      { error: 'Failed to calculate leaderboard' },
+      { status: 500 }
+    )
   }
 }
 
-// Helper function to calculate position changes (moved inside, not exported)
-async function getLeaderboardWithChanges(
-  competitionId: string,
-  currentRound: number
-): Promise<LeaderboardEntry[]> {
+// Update competition settings
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    // Get current round leaderboard
-    const currentLeaderboard = await generateLeaderboard(competitionId, currentRound)
-    
-    if (currentRound <= 1) {
-      // No previous round to compare
-      return currentLeaderboard
-    }
+    const competitionId = params.id
+    const body = await request.json()
+    const { settings } = body
 
-    // Get previous round leaderboard
-    const previousLeaderboard = await generateLeaderboard(competitionId, currentRound - 1)
-    
-    // Create lookup for previous positions
-    const previousPositions = new Map<string, number>()
-    previousLeaderboard.forEach(entry => {
-      previousPositions.set(entry.userId, entry.rank)
+    const updatedCompetition = await prisma.competition.update({
+      where: { id: competitionId },
+      data: {
+        settings: {
+          ...DEFAULT_COMPETITION_SETTINGS,
+          ...settings
+        }
+      }
     })
 
-    // Calculate changes
-    return currentLeaderboard.map(entry => ({
-      ...entry,
-      change: previousPositions.has(entry.userId) 
-        ? previousPositions.get(entry.userId)! - entry.rank 
-        : undefined
-    }))
+    // Recalculate all scores with new settings
+    await recalculateAllScores(competitionId, settings)
+
+    return NextResponse.json({ 
+      success: true, 
+      competition: updatedCompetition 
+    })
   } catch (error) {
-    console.error('Error calculating position changes:', error)
-    return await generateLeaderboard(competitionId, currentRound) // Return without changes if error
+    console.error('Error updating competition settings:', error)
+    return NextResponse.json(
+      { error: 'Failed to update settings' },
+      { status: 500 }
+    )
   }
+}
+
+// Recalculate all scores for a competition
+async function recalculateAllScores(competitionId: string, settings: CompetitionSettings) {
+  const tips = await prisma.tip.findMany({
+    where: { competitionId },
+    include: { game: true }
+  })
+
+  // Update each tip with recalculated points
+  const updatePromises = tips.map(tip => {
+    const points = calculateTipPoints(tip, tip.game, settings)
+    return prisma.tip.update({
+      where: { id: tip.id },
+      data: { points }
+    })
+  })
+
+  await Promise.all(updatePromises)
+}
+
+function calculateTipPoints(tip: any, game: any, settings: CompetitionSettings): number {
+  if (!game.isComplete || game.winner === null) {
+    return 0
+  }
+
+  let points = 0
+
+  // Base points for correct tip
+  if (tip.predictedWinner === game.winner) {
+    points += settings.correctTipPoints
+
+    // Apply confidence multiplier if enabled
+    if (settings.confidenceEnabled && tip.confidence) {
+      points *= tip.confidence
+    }
+
+    // Margin bonus calculation
+    if (settings.marginBonusEnabled && tip.margin && game.homeScore !== null && game.awayScore !== null) {
+      const actualMargin = Math.abs(game.homeScore - game.awayScore)
+      const predictedMargin = Math.abs(tip.margin)
+      const marginDiff = Math.abs(actualMargin - predictedMargin)
+
+      if (marginDiff <= settings.marginBonusThreshold) {
+        points += settings.marginBonusPoints
+      }
+    }
+  }
+
+  return points
 }
