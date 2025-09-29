@@ -9,7 +9,7 @@ export interface CompetitionSettings {
   allCorrectBonusPoints: number
   
   // Margin settings
-  marginMode: 'none' | 'all' | 'first'  // none, all games, or first game only
+  marginMode: 'none' | 'all' | 'first'
   marginBonusEnabled: boolean
   marginBonusThreshold: number
   marginBonusPoints: number
@@ -31,13 +31,11 @@ export const DEFAULT_COMPETITION_SETTINGS: CompetitionSettings = {
   confidenceMultiplier: 1,
 }
 
-// Flexible tip type that works with partial user data
 export type TipWithGameAndUser = Tip & {
   game: Game
   user: Pick<User, 'id' | 'username' | 'imageUrl'> | User
 }
 
-// Calculate points for a single tip
 export function calculateTipPoints(
   tip: Tip,
   game: Game,
@@ -49,16 +47,18 @@ export function calculateTipPoints(
 
   let points = 0
 
-  // Base points for correct tip
+  // 🔍 DEBUG: Log the comparison
+  console.log(`[SCORING DEBUG] Game: ${game.homeTeam} vs ${game.awayTeam}`)
+  console.log(`[SCORING DEBUG] Predicted: ${tip.predictedWinner}, Actual Winner: ${game.winner}`)
+  console.log(`[SCORING DEBUG] Match: ${tip.predictedWinner === game.winner}`)
+
   if (tip.predictedWinner === game.winner) {
     points += settings.correctTipPoints
 
-    // Apply confidence multiplier if enabled
     if (settings.confidenceEnabled && tip.confidence) {
       points *= tip.confidence
     }
 
-    // Margin bonus calculation
     if (settings.marginBonusEnabled && tip.margin && game.homeScore !== null && game.awayScore !== null) {
       const actualMargin = Math.abs(game.homeScore - game.awayScore)
       const predictedMargin = Math.abs(tip.margin)
@@ -73,7 +73,6 @@ export function calculateTipPoints(
   return points
 }
 
-// Calculate all correct bonus for a round
 export function calculateAllCorrectBonus(
   userTips: TipWithGameAndUser[],
   round: number,
@@ -98,7 +97,6 @@ export function calculateAllCorrectBonus(
   return allCorrect ? settings.allCorrectBonusPoints : 0
 }
 
-// User standing for leaderboard
 export interface UserStanding {
   userId: string
   username: string
@@ -107,7 +105,7 @@ export interface UserStanding {
   correctTips: number
   totalTips: number
   percentage: number
-  totalMarginDiff: number  // Sum of all margin differences (lower is better)
+  totalMarginDiff: number
   roundBreakdown: RoundResult[]
   position: number
 }
@@ -121,14 +119,12 @@ export interface RoundResult {
   marginDiff: number
 }
 
-// Calculate comprehensive leaderboard standings
 export function calculateLeaderboard(
   tips: TipWithGameAndUser[],
   settings: CompetitionSettings = DEFAULT_COMPETITION_SETTINGS
 ): UserStanding[] {
   const userStandings = new Map<string, Omit<UserStanding, 'position'>>()
 
-  // Group tips by user
   const tipsByUser = new Map<string, TipWithGameAndUser[]>()
   tips.forEach(tip => {
     if (!tipsByUser.has(tip.userId)) {
@@ -137,11 +133,9 @@ export function calculateLeaderboard(
     tipsByUser.get(tip.userId)!.push(tip)
   })
 
-  // Calculate standings for each user
   tipsByUser.forEach((userTips, userId) => {
     const user = userTips[0].user
     
-    // Group by rounds for round-by-round calculation
     const roundGroups = new Map<number, TipWithGameAndUser[]>()
     userTips.forEach(tip => {
       if (!roundGroups.has(tip.game.round)) {
@@ -156,23 +150,23 @@ export function calculateLeaderboard(
     let totalMarginDiff = 0
     const roundBreakdown: RoundResult[] = []
 
-    // Calculate round by round
     roundGroups.forEach((roundTips, round) => {
       let roundPoints = 0
       let roundCorrect = 0
       let roundMarginDiff = 0
       const completedRoundTips = roundTips.filter(tip => tip.game.isComplete)
 
-      // Calculate basic points
       completedRoundTips.forEach(tip => {
         const tipPoints = calculateTipPoints(tip, tip.game, settings)
         roundPoints += tipPoints
+        
+        // 🔍 DEBUG: Log each tip comparison
+        console.log(`[LEADERBOARD DEBUG] User: ${user.username}, Tip: ${tip.predictedWinner}, Winner: ${tip.game.winner}, Match: ${tip.predictedWinner === tip.game.winner}`)
         
         if (tip.predictedWinner === tip.game.winner) {
           roundCorrect++
         }
 
-        // Calculate margin difference for tiebreaker
         if (tip.margin && tip.game.homeScore !== null && tip.game.awayScore !== null) {
           const actualMargin = Math.abs(tip.game.homeScore - tip.game.awayScore)
           const predictedMargin = Math.abs(tip.margin)
@@ -182,7 +176,6 @@ export function calculateLeaderboard(
         totalTips++
       })
 
-      // Add all correct bonus
       const allCorrectBonus = calculateAllCorrectBonus(roundTips, round, settings)
       roundPoints += allCorrectBonus
 
@@ -202,6 +195,8 @@ export function calculateLeaderboard(
 
     const percentage = totalTips > 0 ? (correctTips / totalTips) * 100 : 0
 
+    console.log(`[LEADERBOARD SUMMARY] User: ${user.username}, Correct: ${correctTips}/${totalTips}, Points: ${totalPoints}`)
+
     userStandings.set(userId, {
       userId,
       username: user.username,
@@ -215,10 +210,8 @@ export function calculateLeaderboard(
     })
   })
 
-  // Convert to array and sort
   const standings = Array.from(userStandings.values())
   
-  // Sort by: 1) Total Points (desc), 2) Total Margin Difference (asc), 3) Percentage (desc)
   standings.sort((a, b) => {
     if (b.totalPoints !== a.totalPoints) {
       return b.totalPoints - a.totalPoints
@@ -229,14 +222,12 @@ export function calculateLeaderboard(
     return b.percentage - a.percentage
   })
 
-  // Add positions
   return standings.map((standing, index) => ({
     ...standing,
     position: index + 1
   }))
 }
 
-// Get specific round summary
 export function getRoundSummary(
   tips: TipWithGameAndUser[],
   round: number,
@@ -271,14 +262,12 @@ export function getRoundSummary(
     }
   })
 
-  // Add all correct bonuses
   userScores.forEach((score, userId) => {
     const userRoundTips = roundTips.filter(tip => tip.userId === userId)
     const bonus = calculateAllCorrectBonus(userRoundTips, round, settings)
     userScores.set(userId, score + bonus)
   })
 
-  // Fix Set iteration - use Array.from instead of spread
   const gameIdsSet = new Set<string>()
   roundTips.forEach(tip => gameIdsSet.add(tip.gameId))
   const totalGames = Array.from(gameIdsSet).length
@@ -292,13 +281,9 @@ export function getRoundSummary(
   const scores = Array.from(userScores.values())
   const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
   
-  // Count perfect rounds (all correct)
-  let perfectRounds = 0
-  userGameCounts.forEach(({ total, correct }) => {
-    if (total > 0 && correct === total && total === completedGames) {
-      perfectRounds++
-    }
-  })
+  const perfectRounds = Array.from(userGameCounts.values()).filter(
+    count => count.total > 0 && count.correct === count.total
+  ).length
 
   return {
     totalGames,
@@ -307,26 +292,4 @@ export function getRoundSummary(
     averageScore,
     perfectRounds
   }
-}
-
-// Update tip points in database
-export async function updateTipPoints(
-  tipId: string,
-  points: number
-): Promise<void> {
-  // This would be implemented with your database client
-  // Example with Prisma:
-  // await prisma.tip.update({
-  //   where: { id: tipId },
-  //   data: { points }
-  // })
-}
-
-// Batch update all tips for a round/competition
-export async function recalculateCompetitionScores(
-  competitionId: string,
-  settings: CompetitionSettings
-): Promise<void> {
-  // This would fetch all tips for the competition and recalculate
-  // Implementation depends on your database setup
 }
