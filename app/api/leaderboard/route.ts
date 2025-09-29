@@ -9,6 +9,7 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url)
     const round = searchParams.get('round')
+    const debug = searchParams.get('debug') === 'true'
     const competitionId = params.id
 
     // Get competition settings
@@ -33,7 +34,22 @@ export async function GET(
       ...(competition.settings as any || {})
     }
 
-    // Fetch tips with games and users
+    // Fetch ALL tips first to debug
+    const allTips = await prisma.tip.findMany({
+      where: { competitionId },
+      include: {
+        game: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            imageUrl: true
+          }
+        }
+      }
+    })
+
+    // Fetch tips with games and users for completed games only
     const whereClause: any = {
       competitionId,
       game: {
@@ -58,6 +74,28 @@ export async function GET(
         }
       }
     })
+
+    // DEBUG INFO
+    if (debug) {
+      return NextResponse.json({
+        debug: {
+          competitionId,
+          totalTips: allTips.length,
+          completedGameTips: tips.length,
+          settings,
+          sampleTip: tips[0] || null,
+          completedGames: allTips.filter(t => t.game.isComplete).length,
+          gameStatus: allTips.slice(0, 5).map(t => ({
+            gameId: t.gameId,
+            round: t.game.round,
+            isComplete: t.game.isComplete,
+            homeScore: t.game.homeScore,
+            awayScore: t.game.awayScore,
+            winner: t.game.winner
+          }))
+        }
+      })
+    }
 
     if (round) {
       // Return round-specific leaderboard
@@ -99,94 +137,8 @@ export async function GET(
   } catch (error) {
     console.error('Error calculating leaderboard:', error)
     return NextResponse.json(
-      { error: 'Failed to calculate leaderboard' },
+      { error: 'Failed to calculate leaderboard', details: String(error) },
       { status: 500 }
     )
   }
-}
-
-// Update competition settings
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const competitionId = params.id
-    const body = await request.json()
-    const { settings } = body
-
-    const updatedCompetition = await prisma.competition.update({
-      where: { id: competitionId },
-      data: {
-        settings: {
-          ...DEFAULT_COMPETITION_SETTINGS,
-          ...settings
-        }
-      }
-    })
-
-    // Recalculate all scores with new settings
-    await recalculateAllScores(competitionId, settings)
-
-    return NextResponse.json({ 
-      success: true, 
-      competition: updatedCompetition 
-    })
-  } catch (error) {
-    console.error('Error updating competition settings:', error)
-    return NextResponse.json(
-      { error: 'Failed to update settings' },
-      { status: 500 }
-    )
-  }
-}
-
-// Recalculate all scores for a competition
-async function recalculateAllScores(competitionId: string, settings: CompetitionSettings) {
-  const tips = await prisma.tip.findMany({
-    where: { competitionId },
-    include: { game: true }
-  })
-
-  // Update each tip with recalculated points
-  const updatePromises = tips.map(tip => {
-    const points = calculateTipPoints(tip, tip.game, settings)
-    return prisma.tip.update({
-      where: { id: tip.id },
-      data: { points }
-    })
-  })
-
-  await Promise.all(updatePromises)
-}
-
-function calculateTipPoints(tip: any, game: any, settings: CompetitionSettings): number {
-  if (!game.isComplete || game.winner === null) {
-    return 0
-  }
-
-  let points = 0
-
-  // Base points for correct tip
-  if (tip.predictedWinner === game.winner) {
-    points += settings.correctTipPoints
-
-    // Apply confidence multiplier if enabled
-    if (settings.confidenceEnabled && tip.confidence) {
-      points *= tip.confidence
-    }
-
-    // Margin bonus calculation
-    if (settings.marginBonusEnabled && tip.margin && game.homeScore !== null && game.awayScore !== null) {
-      const actualMargin = Math.abs(game.homeScore - game.awayScore)
-      const predictedMargin = Math.abs(tip.margin)
-      const marginDiff = Math.abs(actualMargin - predictedMargin)
-
-      if (marginDiff <= settings.marginBonusThreshold) {
-        points += settings.marginBonusPoints
-      }
-    }
-  }
-
-  return points
 }
