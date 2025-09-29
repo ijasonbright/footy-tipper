@@ -38,6 +38,7 @@ export async function GET(request: Request) {
         switch (action) {
           case 'complete':
             const completedGames = mockGameService.completeGames(seasonNum, roundNum, 3)
+            await syncMockGamesToDatabase(completedGames) // ✅ Sync to DB
             return NextResponse.json({
               message: `Completed 3 games in Round ${roundNum}`,
               games: completedGames,
@@ -47,6 +48,8 @@ export async function GET(request: Request) {
           
           case 'reset':
             mockGameService.resetSeason(seasonNum)
+            const resetGames = mockGameService.getSeasonGames(seasonNum)
+            await syncMockGamesToDatabase(resetGames) // ✅ Sync to DB
             return NextResponse.json({
               message: `Reset all games for ${season} season`,
               currentRound: 1,
@@ -55,6 +58,7 @@ export async function GET(request: Request) {
           
           case 'simulate':
             const simulatedGames = mockGameService.simulateLiveRound(seasonNum, roundNum)
+            await syncMockGamesToDatabase(simulatedGames) // ✅ Sync to DB
             return NextResponse.json({
               message: `Simulated live scoring for Round ${roundNum}`,
               games: simulatedGames,
@@ -79,15 +83,15 @@ export async function GET(request: Request) {
         squiggleId: game.squiggleId,
         round: game.round,
         season: game.season,
-        homeTeam: game.homeTeam, // ✅ Use actual team name from mock service
-        awayTeam: game.awayTeam, // ✅ Use actual team name from mock service
-        homeTeamId: game.homeTeamId, // ✅ Use actual team ID from mock service
-        awayTeamId: game.awayTeamId, // ✅ Use actual team ID from mock service
+        homeTeam: game.homeTeam,
+        awayTeam: game.awayTeam,
+        homeTeamId: game.homeTeamId,
+        awayTeamId: game.awayTeamId,
         venue: game.venue,
         date: game.date,
         homeScore: game.homeScore,
         awayScore: game.awayScore,
-        winner: game.winner, // ✅ Winner is already the correct team ID
+        winner: game.winner, // ✅ This is the actual team ID (1-18)
         isComplete: game.isComplete,
         createdAt: game.createdAt,
         updatedAt: game.updatedAt
@@ -182,7 +186,7 @@ async function syncMockGamesToDatabase(games: any[]) {
           awayTeamId: game.awayTeamId,
           homeScore: game.homeScore,
           awayScore: game.awayScore,
-          winner: game.winner,
+          winner: game.winner, // ✅ This is the actual winning team ID (1-18), not 1 or 2
           isComplete: game.isComplete,
           updatedAt: new Date()
         },
@@ -190,10 +194,10 @@ async function syncMockGamesToDatabase(games: any[]) {
           squiggleId: game.squiggleId,
           round: game.round,
           season: game.season,
-          homeTeam: game.homeTeam, // ✅ Actual team name
-          awayTeam: game.awayTeam, // ✅ Actual team name
-          homeTeamId: game.homeTeamId, // ✅ Actual team ID
-          awayTeamId: game.awayTeamId, // ✅ Actual team ID
+          homeTeam: game.homeTeam,
+          awayTeam: game.awayTeam,
+          homeTeamId: game.homeTeamId,
+          awayTeamId: game.awayTeamId,
           venue: game.venue,
           date: game.date,
           homeScore: game.homeScore,
@@ -203,7 +207,7 @@ async function syncMockGamesToDatabase(games: any[]) {
         }
       })
     }
-    console.log(`✅ Synced ${games.length} mock games to database with correct team data`)
+    console.log(`✅ Synced ${games.length} mock games to database with correct winner team IDs`)
   } catch (error) {
     console.error('Error syncing mock games to database:', error)
   }
@@ -294,13 +298,16 @@ export async function POST(request: Request) {
           ...games[gameIndex],
           homeScore,
           awayScore,
-          winner: homeScore > awayScore ? games[gameIndex].homeTeamId : games[gameIndex].awayTeamId,
+          winner: homeScore > awayScore ? games[gameIndex].homeTeamId : games[gameIndex].awayTeamId, // ✅ Actual team ID
           isComplete: true,
           updatedAt: new Date()
         }
 
-        // Sync the updated game to database
+        // ✅ Sync the updated game to database with correct winner
         await syncMockGamesToDatabase([games[gameIndex]])
+        
+        console.log(`✅ Completed game: ${games[gameIndex].homeTeam} (ID:${games[gameIndex].homeTeamId}) ${homeScore} - ${awayScore} ${games[gameIndex].awayTeam} (ID:${games[gameIndex].awayTeamId})`)
+        console.log(`✅ Winner: Team ID ${games[gameIndex].winner}`)
         
         return NextResponse.json({
           message: `Completed game: ${games[gameIndex].homeTeam} ${homeScore} - ${awayScore} ${games[gameIndex].awayTeam}`,
@@ -309,7 +316,7 @@ export async function POST(request: Request) {
 
       case 'complete_round':
         const completedRound = mockGameService.completeGames(seasonNum, roundNum, 9)
-        await syncMockGamesToDatabase(completedRound)
+        await syncMockGamesToDatabase(completedRound) // ✅ Sync to DB
         return NextResponse.json({
           message: `Completed all games in Round ${roundNum}`,
           games: completedRound,
@@ -319,7 +326,7 @@ export async function POST(request: Request) {
       case 'reset_season':
         mockGameService.resetSeason(seasonNum)
         const resetGames = mockGameService.getSeasonGames(seasonNum)
-        await syncMockGamesToDatabase(resetGames)
+        await syncMockGamesToDatabase(resetGames) // ✅ Sync to DB
         return NextResponse.json({
           message: `Reset all games for ${season} season`,
           currentRound: 1
@@ -328,7 +335,7 @@ export async function POST(request: Request) {
       case 'advance_round':
         // Complete current round and advance to next
         const advancedGames = mockGameService.completeGames(seasonNum, roundNum, 9)
-        await syncMockGamesToDatabase(advancedGames)
+        await syncMockGamesToDatabase(advancedGames) // ✅ Sync to DB
         const nextRound = mockGameService.getCurrentRound(seasonNum)
         return NextResponse.json({
           message: `Completed Round ${roundNum}. Advanced to Round ${nextRound}`,
@@ -339,7 +346,7 @@ export async function POST(request: Request) {
       case 'simulate_live':
         // Simulate one game finishing during "live" play
         const simulatedGames = mockGameService.simulateLiveRound(seasonNum, roundNum)
-        await syncMockGamesToDatabase(simulatedGames)
+        await syncMockGamesToDatabase(simulatedGames) // ✅ Sync to DB
         return NextResponse.json({
           message: `Simulated live result in Round ${roundNum}`,
           games: simulatedGames,
