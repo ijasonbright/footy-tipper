@@ -321,11 +321,25 @@ const AFL_VENUES = [
   'TIO Stadium', 'Manuka Oval', 'Mars Stadium'
 ]
 
+// Fisher-Yates shuffle algorithm for better randomization
+function shuffleArray<T>(array: readonly T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 // Generate a fixture for a round (9 games) with future dates
 function generateRoundFixture(round: number, season: number = 2025): MockGame[] {
   const games: MockGame[] = []
-  const teams = [...AFL_TEAMS]
-  const shuffledTeams = teams.sort(() => Math.random() - 0.5)
+  
+  // Create a NEW shuffled array for each round to ensure variety
+  type Team = typeof AFL_TEAMS[number]
+  const shuffledTeams: Team[] = shuffleArray(AFL_TEAMS)
+  
+  console.log(`🎲 Generating Round ${round} fixtures with teams:`, shuffledTeams.slice(0, 4).map(t => `${t.name} (ID:${t.id})`))
   
   // Create 9 games (18 teams = 9 matches)
   for (let i = 0; i < 9; i++) {
@@ -352,7 +366,7 @@ function generateRoundFixture(round: number, season: number = 2025): MockGame[] 
     
     const venue = AFL_VENUES[Math.floor(Math.random() * AFL_VENUES.length)]
     
-    games.push({
+    const game: MockGame = {
       id: `mock-${season}-${round}-${i + 1}`,
       squiggleId: `${season}${round.toString().padStart(2, '0')}${(i + 1).toString().padStart(2, '0')}`,
       round,
@@ -369,7 +383,14 @@ function generateRoundFixture(round: number, season: number = 2025): MockGame[] 
       isComplete: false,
       createdAt: new Date(),
       updatedAt: new Date()
-    })
+    }
+    
+    games.push(game)
+    
+    // Log first game of each round to verify team IDs
+    if (i === 0) {
+      console.log(`  ✓ Game 1: ${homeTeam.name} (ID:${homeTeam.id}) vs ${awayTeam.name} (ID:${awayTeam.id})`)
+    }
   }
   
   return games
@@ -404,6 +425,7 @@ class MockGameService {
   
   // Generate a full season fixture with FUTURE dates
   generateSeason(season: number = 2025, rounds: number = 23): MockGame[] {
+    console.log(`🏈 Generating ${season} season with ${rounds} rounds...`)
     const allGames: MockGame[] = []
     
     for (let round = 1; round <= rounds; round++) {
@@ -412,6 +434,8 @@ class MockGameService {
     }
     
     this.mockData.set(`season-${season}`, allGames)
+    console.log(`✅ Generated ${allGames.length} total games for ${season} season`)
+    
     return allGames
   }
   
@@ -450,10 +474,13 @@ class MockGameService {
     const games = this.getSeasonGames(season)
     const roundGames = games.filter(g => g.round === round && !g.isComplete)
     
+    console.log(`⚡ Completing ${Math.min(gameCount, roundGames.length)} games in Round ${round}`)
+    
     for (let i = 0; i < Math.min(gameCount, roundGames.length); i++) {
       const gameIndex = games.findIndex(g => g.id === roundGames[i].id)
       if (gameIndex !== -1) {
         games[gameIndex] = generateCompletedGame(roundGames[i])
+        console.log(`  ✓ Completed: ${games[gameIndex].homeTeam} ${games[gameIndex].homeScore} - ${games[gameIndex].awayScore} ${games[gameIndex].awayTeam}`)
       }
     }
     
@@ -462,6 +489,7 @@ class MockGameService {
   
   // Reset all games to incomplete (for testing)
   resetSeason(season: number = 2025): MockGame[] {
+    console.log(`🔄 Resetting ${season} season...`)
     const games = this.getSeasonGames(season)
     games.forEach(game => {
       game.homeScore = null
@@ -487,6 +515,7 @@ class MockGameService {
       
       if (gameIndex !== -1) {
         games[gameIndex] = generateCompletedGame(randomGame)
+        console.log(`🎯 Simulated completion: ${games[gameIndex].homeTeam} vs ${games[gameIndex].awayTeam}`)
       }
     }
     
@@ -507,8 +536,15 @@ export function initializeMockData() {
   mockGameService.completeGames(2025, 1, 9) // Complete all Round 1 games
   mockGameService.completeGames(2025, 2, 6) // Complete 6 Round 2 games
   
-  console.log(`✅ Generated ${season2025.length} games for 2025 season`)
+  console.log(`✅ Initialization complete!`)
   console.log(`🎯 Current round: ${mockGameService.getCurrentRound(2025)}`)
+  
+  // Verify first few games have correct team IDs
+  const round1Games = mockGameService.getRoundGames(2025, 1)
+  console.log(`🔍 Round 1 verification:`)
+  round1Games.slice(0, 2).forEach(game => {
+    console.log(`  ${game.homeTeam} (ID:${game.homeTeamId}) vs ${game.awayTeam} (ID:${game.awayTeamId})`)
+  })
   
   return {
     totalGames: season2025.length,
